@@ -702,6 +702,28 @@
               }
             }
             break;
+          
+          case 'SliceElementAdded':
+            if (state.slices[event.data.sliceId]) {
+              const slice = state.slices[event.data.sliceId];
+              // Insert at position based on element type
+              if (event.data.position === 'start') {
+                slice.elements.unshift(event.data.elementId);
+              } else if (event.data.position === 'afterCommand') {
+                // Find command and insert after it
+                const cmdIndex = slice.elements.findIndex(id => 
+                  state.elements[id]?.type === 'command'
+                );
+                if (cmdIndex >= 0) {
+                  slice.elements.splice(cmdIndex + 1, 0, event.data.elementId);
+                } else {
+                  slice.elements.push(event.data.elementId);
+                }
+              } else {
+                slice.elements.push(event.data.elementId);
+              }
+            }
+            break;
             
           case EventTypes.SliceDeleted:
             delete state.slices[event.data.sliceId];
@@ -794,8 +816,38 @@
         relation
       });
 
-      // 3. Infer slice if pattern detected
-      if (sliceType) {
+      // 3. Check if selected element is already in a slice
+      const state = projectState();
+      const existingSlice = Object.values(state.slices).find(s => 
+        s.elements.includes(selectedElement.id)
+      );
+      
+      if (existingSlice) {
+        // Add new element to existing slice
+        let position = 'end';
+        
+        // Screens go at start (input) or end (display)
+        if (targetType === 'screen' && relation === 'input') {
+          position = 'start';
+        } else if (targetType === 'readModel') {
+          position = 'end';
+        } else if (targetType === 'event' && relation === 'produces') {
+          // Find position after command
+          const cmdIndex = existingSlice.elements.findIndex(id => 
+            state.elements[id]?.type === 'command'
+          );
+          position = cmdIndex >= 0 ? 'afterCommand' : 'end';
+        }
+        
+        appendEvent('SliceElementAdded', {
+          sliceId: existingSlice.id,
+          elementId: newElementId,
+          position
+        });
+        
+        showToast('Added to slice!');
+      } else if (sliceType) {
+        // 4. Infer new slice if pattern detected
         const sliceId = 'slice_' + Date.now();
         let elements = [];
         
