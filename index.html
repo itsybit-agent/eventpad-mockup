@@ -818,9 +818,15 @@
 
       // 3. Check if selected element is already in a slice
       const state = projectState();
-      const existingSlice = Object.values(state.slices).find(s => 
-        s.elements.includes(selectedElement.id)
-      );
+      console.log('Looking for element in slice:', selectedElement.id);
+      console.log('All slices:', state.slices);
+      
+      const existingSlice = Object.values(state.slices).find(s => {
+        console.log('Checking slice:', s.id, 'elements:', s.elements);
+        return s.elements.includes(selectedElement.id);
+      });
+      
+      console.log('Found existingSlice:', existingSlice);
       
       if (existingSlice) {
         // Add new element to existing slice
