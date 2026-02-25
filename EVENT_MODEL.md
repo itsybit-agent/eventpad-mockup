@@ -354,14 +354,14 @@ Then:
 ## 📖 Automation Slice
 
 **AU Pattern:** Automation reacts to domain events with context from read models.
+AU slice is only created when **complete** (has trigger + command).
 
 ```
-🟧 Trigger Event (from existing SV)
-🟩 Primary ReadModel (auto-included from same SV)
-🟩 Additional Context ReadModels (optional, from other SVs)
-⚙️ Processor
-🟦 Command (picked from existing)
-🟧 Output Events (from command's SC slice)
+⚙️ Processor (top)
+       ↓
+🟩 ReadModels ↗   🟦 Command ↗   (same row, linked to source slices)
+       ↓
+🟧 Trigger Event (from SV)
 ```
 
 ### SC: Create Processor
@@ -379,14 +379,13 @@ Then: ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyW
 ```
 
 ### SC: Set Trigger (from SV slice)
-⏹️ ProcessorCard { processorId }
+⏹️ ProcessorCard { processorId, no trigger yet }
 ⏹️ ActionSheet { "What triggers this?" }
-⏹️ SVEventPicker { events from existing SV slices only }
-🟦 SetTrigger { processorId, eventId, readModelId (from same SV) }
-🟧 TriggerSet { processorId, eventId }
-🟧 SliceInferred { sliceId*, sliceType: "AU", elements: [eventId, readModelId, processorId], complete: false }
+⏹️ SVEventPicker { events grouped by their SV slice }
+🟦 SetTrigger { processorId, eventId }
+🟧 TriggerSet { fromId: eventId, toId: processorId, relation: "trigger" }
 
-✅ "Pick trigger event → auto-includes SV's read model"
+✅ "Pick trigger event from SV → stores trigger (no slice yet)"
 ```
 Given:
   ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
@@ -396,53 +395,73 @@ Given:
   ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
 When: SetTrigger { processorId: "p1", eventId: "e1" }
 Then:
-  TriggerSet { processorId: "p1", eventId: "e1" }
-  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1"], complete: false }
+  TriggerSet { fromId: "e1", toId: "p1", relation: "trigger" }
 ```
-**Note:** Trigger event must come from an existing SV. ReadModel from same SV is auto-included.
+**Note:** NO slice created yet. Processor shows "triggered by: 🟧 event" as loose element.
 
-### SC: Add Additional Context
-⏹️ ProcessorCard { processorId in AU slice }
+### SC: Add Additional Context (optional, repeatable)
+⏹️ ProcessorCard { processorId, has trigger }
 ⏹️ ActionSheet { "What additional context?" }
-⏹️ ReadModelPicker { readModels from other SV slices }
-🟦 AddContext { sliceId, readModelIds[] }
-🟧 ContextAdded { sliceId, readModelId }
-🟧 SliceElementAdded { sliceId, elementId: readModelId }
+⏹️ ReadModelPicker { all readModels }
+🟦 AddContext { processorId, readModelId }
+🟧 ProducerSet { fromId: processorId, toId: readModelId, relation: "context" }
 
-✅ "Add additional context read models"
+✅ "Add additional context read model"
 ```
 Given:
-  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1"], complete: false }
+  ElementCreated { elementId: "p1", elementType: "processor" }
+  TriggerSet { fromId: "e1", toId: "p1", relation: "trigger" }
   ElementCreated { elementId: "rm2", elementType: "readModel", name: "CustomerProfile" }
-  SliceInferred { sliceId: "sv2", sliceType: "SV", elements: ["rm2", "e2"] }
-When: AddContext { sliceId: "au1", readModelId: "rm2" }
+When: AddContext { processorId: "p1", readModelId: "rm2" }
 Then:
-  ContextAdded { sliceId: "au1", readModelId: "rm2" }
-  SliceElementAdded { sliceId: "au1", elementId: "rm2" }
+  ProducerSet { fromId: "p1", toId: "rm2", relation: "context" }
 ```
-**Note:** Additional context comes from OTHER SV slices. Can add multiple.
+**Note:** Can add multiple. All context ReadModels included when AU slice is created.
 
-### SC: Set Automation Command (pick from existing)
-⏹️ ProcessorCard { processorId in AU slice }
+### SC: Set Command → Create Complete AU Slice
+⏹️ ProcessorCard { processorId, has trigger }
 ⏹️ ActionSheet { "What command does this invoke?" }
-⏹️ CommandPicker { existing commands only! }
-🟦 SetAutomationCommand { sliceId, commandId }
-🟧 AutomationCommandSet { sliceId, commandId }
-🟧 SliceElementAdded { sliceId, elementId: commandId }
-🟧 SliceCompleted { sliceId }
+⏹️ CommandPicker { existing commands only }
+🟦 SetCommand { processorId, commandId }
+🟧 ProducerSet { fromId: processorId, toId: commandId, relation: "invokes" }
+🟧 SliceInferred { sliceId*, sliceType: "AU", elements: [...], complete: true }
 
-✅ "Set command from picker → completes AU slice"
+✅ "Set command → creates complete AU slice with all elements"
 ```
 Given:
-  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1"], complete: false }
-  ElementCreated { elementId: "c1", elementType: "command", name: "SendNotification" }
-When: SetAutomationCommand { sliceId: "au1", commandId: "c1" }
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
+  SliceInferred { sliceId: "sv1", sliceType: "SV", elements: ["rm1", "e1"] }
+  ElementCreated { elementId: "rm2", elementType: "readModel", name: "CustomerProfile" }
+  ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
+  TriggerSet { fromId: "e1", toId: "p1", relation: "trigger" }
+  ProducerSet { fromId: "p1", toId: "rm2", relation: "context" }
+  ElementCreated { elementId: "c1", elementType: "command", name: "SendEmail" }
+When: SetCommand { processorId: "p1", commandId: "c1" }
 Then:
-  AutomationCommandSet { sliceId: "au1", commandId: "c1" }
-  SliceElementAdded { sliceId: "au1", elementId: "c1" }
-  SliceCompleted { sliceId: "au1" }
+  ProducerSet { fromId: "p1", toId: "c1", relation: "invokes" }
+  SliceInferred { 
+    sliceId: "au1", 
+    sliceType: "AU", 
+    elements: ["e1", "rm1", "rm2", "p1", "c1"],  // trigger, primary RM, additional RM, processor, command
+    complete: true 
+  }
 ```
-**Note:** Command is PICKED from existing commands, not created inline.
+**Note:** AU slice created only when complete. Elements: trigger event + primary ReadModel (from same SV) + additional context ReadModels + processor + command.
+
+### AU Slice Display
+```
+┌──────────────────────────────────┐
+│ NotifyWarehouse               AU │
+├──────────────────────────────────┤
+│          ⚙️ NotifyWarehouse      │
+│                ↓                 │
+│  🟩 OrderList ↗  🟩 Profile ↗  🟦 SendEmail ↗  │  ← tap to jump to source
+│                ↓                 │
+│          🟧 OrderCreated         │
+└──────────────────────────────────┘
+```
+**ReadModels** (left) and **Command** (right) are **references** - tap ↗ to jump to their source SC/SV slice.
 
 ---
 
