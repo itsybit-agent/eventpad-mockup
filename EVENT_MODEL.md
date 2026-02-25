@@ -355,13 +355,12 @@ Then:
 
 **AU Pattern:** Automation reacts to domain events with context from read models.
 AU slice is only created when **complete** (has trigger + command).
+Event not shown in display - implied by linked ReadModel's SV.
 
 ```
 ⚙️ Processor (top)
        ↓
 🟩 ReadModels ↗   🟦 Command ↗   (same row, linked to source slices)
-       ↓
-🟧 Trigger Event (from SV)
 ```
 
 ### SC: Create Processor
@@ -451,17 +450,17 @@ Then:
 
 ### AU Slice Display
 ```
-┌──────────────────────────────────┐
-│ NotifyWarehouse               AU │
-├──────────────────────────────────┤
-│          ⚙️ NotifyWarehouse      │
-│                ↓                 │
-│  🟩 OrderList ↗  🟩 Profile ↗  🟦 SendEmail ↗  │  ← tap to jump to source
-│                ↓                 │
-│          🟧 OrderCreated         │
-└──────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ NotifyWarehouse                           AU │
+├──────────────────────────────────────────────┤
+│              ⚙️ NotifyWarehouse              │
+│                     ↓                        │
+│  🟩 OrderList ↗  🟩 Profile ↗  🟦 SendEmail ↗ │
+└──────────────────────────────────────────────┘
 ```
+**Event not shown** - implied by linked ReadModel's SV slice.
 **ReadModels** (left) and **Command** (right) are **references** - tap ↗ to jump to their source SC/SV slice.
+More space for multiple context ReadModels.
 
 ---
 

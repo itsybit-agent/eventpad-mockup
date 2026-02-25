@@ -1402,11 +1402,11 @@
     
     function renderSliceElements(elements, sliceType) {
       if (sliceType === 'AU') {
-        // AU: Group command and readModels on same row
+        // AU: Processor on top, ReadModels + Command on same row (no events shown)
         const processor = elements.find(e => e.type === 'processor');
         const command = elements.find(e => e.type === 'command');
         const readModels = elements.filter(e => e.type === 'readModel');
-        const events = elements.filter(e => e.type === 'event');
+        // Events not shown - implied by linked ReadModel's SV slice
         
         let html = '';
         
@@ -1446,17 +1446,6 @@
           }
           html += '</div>';
         }
-        
-        // Events at bottom
-        events.forEach((evt, i) => {
-          html += '<div class="slice-arrow">↓</div>';
-          html += `
-            <div class="slice-element">
-              <div class="slice-element-icon" style="background: var(--event); color: #000;">🟧</div>
-              <span>${evt.name}</span>
-            </div>
-          `;
-        });
         
         return html;
       }
