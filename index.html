@@ -1411,19 +1411,11 @@
           `;
         }
         
-        // Command + ReadModels on same row (clickable to jump to source slice)
+        // ReadModels (left) + Command (right) on same row
         if (command || readModels.length > 0) {
           if (processor) html += '<div class="slice-arrow">↓</div>';
           html += '<div class="slice-row">';
-          if (command) {
-            html += `
-              <div class="slice-element slice-link" onclick="jumpToElementSlice('${command.id}')" title="Tap to see source slice">
-                <div class="slice-element-icon" style="background: var(--command); color: #fff;">🟦</div>
-                <span>${command.name}</span>
-                <span class="link-indicator">↗</span>
-              </div>
-            `;
-          }
+          // ReadModels first (left)
           readModels.forEach(rm => {
             html += `
               <div class="slice-element slice-link" onclick="jumpToElementSlice('${rm.id}')" title="Tap to see source slice">
@@ -1433,6 +1425,16 @@
               </div>
             `;
           });
+          // Command (right)
+          if (command) {
+            html += `
+              <div class="slice-element slice-link" onclick="jumpToElementSlice('${command.id}')" title="Tap to see source slice">
+                <div class="slice-element-icon" style="background: var(--command); color: #fff;">🟦</div>
+                <span>${command.name}</span>
+                <span class="link-indicator">↗</span>
+              </div>
+            `;
+          }
           html += '</div>';
         }
         
