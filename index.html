@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EventPad MVP</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface-hover: #252532;
+      --border: #2a2a3a;
+      --text: #ffffff;
+      --text-muted: #888;
+      --event: #ff9d48;
+      --command: #4a90d9;
+      --readmodel: #8bc34a;
+      --screen: #e0e0e0;
+      --processor: #9c27b0;
+      --accent: #9b59b6;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .header-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    
+    /* Feed */
+    .feed {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    /* Element Card */
+    .element-card {
+      background: var(--surface);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .element-card.in-slice {
+      border-left: 3px solid var(--accent);
+    }
+    
+    .element-header {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .element-header:hover {
+      background: var(--surface-hover);
+    }
+    
+    .element-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .element-icon.event { background: var(--event); color: #000; }
+    .element-icon.command { background: var(--command); color: #fff; }
+    .element-icon.readModel { background: var(--readmodel); color: #000; }
+    .element-icon.screen { background: var(--screen); color: #000; }
+    .element-icon.processor { background: var(--processor); color: #fff; }
+    
+    .element-info { flex: 1; }
+    .element-name { font-weight: 600; font-size: 15px; }
+    .element-type { font-size: 12px; color: var(--text-muted); }
+    
+    .element-chevron {
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .element-card.expanded .element-chevron {
+      transform: rotate(180deg);
+    }
+    
+    /* Properties */
+    .element-properties {
+      display: none;
+      padding: 0 16px 12px;
+      font-size: 13px;
+    }
+    .element-card.expanded .element-properties {
+      display: block;
+    }
+    .property {
+      padding: 6px 0;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .property:last-child { border-bottom: none; }
+    .add-property {
+      color: var(--accent);
+      padding: 8px 0;
+      cursor: pointer;
+    }
+    
+    /* Actions */
+    .element-actions {
+      display: none;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .element-card.expanded .element-actions {
+      display: flex;
+    }
+    
+    .action-btn {
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .action-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    /* Slice Card */
+    .slice-card {
+      background: var(--surface);
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      overflow: hidden;
+    }
+    .slice-header {
+      background: var(--accent);
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .slice-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .slice-type {
+      font-size: 11px;
+      background: rgba(255,255,255,0.2);
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+    .slice-elements {
+      padding: 12px;
+    }
+    .slice-element {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+    }
+    .slice-element-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .slice-arrow {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 4px 0;
+    }
+    
+    /* Scenarios */
+    .scenarios {
+      border-top: 1px solid var(--border);
+      padding: 12px;
+    }
+    .scenario {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .scenario-name {
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .scenario-name.success { color: #4caf50; }
+    .scenario-name.failure { color: #f44336; }
+    .scenario-line {
+      color: var(--text-muted);
+      padding: 2px 0;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .add-scenario {
+      color: var(--accent);
+      padding: 8px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 13px;
+    }
+    
+    /* Connection Line */
+    .connection {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0;
+      color: var(--text-muted);
+    }
+    .connection-line {
+      width: 2px;
+      height: 24px;
+      background: var(--border);
+    }
+    
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: var(--accent);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      z-index: 200;
+    }
+    .fab:hover {
+      transform: scale(1.05);
+    }
+    
+    /* Bottom Sheet */
+    .sheet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 300;
+    }
+    .sheet-overlay.active { display: block; }
+    
+    .sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      padding: 20px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 301;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .sheet-overlay.active .sheet {
+      transform: translateY(0);
+    }
+    
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    
+    .sheet-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sheet-option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--bg);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .sheet-option:hover {
+      background: var(--surface-hover);
+    }
+    .sheet-option-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .sheet-option-text {
+      flex: 1;
+    }
+    .sheet-option-title {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .sheet-option-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    /* Input */
+    .sheet-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      color: var(--text);
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    .sheet-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .sheet-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .sheet-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      padding: 12px 20px;
+      border-radius: 25px;
+      font-size: 14px;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 400;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .empty-state-text {
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>EventPad</h1>
+    <div class="header-sub">Element-first event modeling</div>
+  </div>
+
+  <div class="feed" id="feed">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">🟧</div>
+      <div class="empty-state-text">Tap + to create your first element</div>
+    </div>
+  </div>
+
+  <div class="fab" id="fab">+</div>
+
+  <!-- Create Element Sheet -->
+  <div class="sheet-overlay" id="createSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Create Element</div>
+      <div class="sheet-options">
+        <div class="sheet-option" onclick="selectType('event')">
+          <div class="sheet-option-icon" style="background: var(--event); color: #000;">🟧</div>
+          <div class="sheet-option-text">
+            <div class="sheet-option-title">Event</div>
+            <div class="sheet-option-desc">Something that happened</div>
+          </div>
+        </div>
+        <div class="sheet-option" onclick="selectType('command')">
+          <div class="sheet-option-icon" style="background: var(--command); color: #fff;">🟦</div>
+          <div class="sheet-option-text">
+            <div class="sheet-option-title">Command</div>
+            <div class="sheet-option-desc">An action to perform</div>
+          </div>
+        </div>
+        <div class="sheet-option" onclick="selectType('readModel')">
+          <div class="sheet-option-icon" style="background: var(--readmodel); color: #000;">🟩</div>
+          <div class="sheet-option-text">
+            <div class="sheet-option-title">Read Model</div>
+            <div class="sheet-option-desc">Data for display</div>
+          </div>
+        </div>
+        <div class="sheet-option" onclick="selectType('screen')">
+          <div class="sheet-option-icon" style="background: var(--screen); color: #000;">⏹️</div>
+          <div class="sheet-option-text">
+            <div class="sheet-option-title">Screen</div>
+            <div class="sheet-option-desc">User interface</div>
+          </div>
+        </div>
+        <div class="sheet-option" onclick="selectType('processor')">
+          <div class="sheet-option-icon" style="background: var(--processor); color: #fff;">⚙️</div>
+          <div class="sheet-option-text">
+            <div class="sheet-option-title">Processor</div>
+            <div class="sheet-option-desc">Automation logic</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Name Element Sheet -->
+  <div class="sheet-overlay" id="nameSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="nameSheetTitle">Name your Event</div>
+      <input type="text" class="sheet-input" id="elementNameInput" placeholder="e.g. OrderCreated">
+      <button class="sheet-btn" id="createElementBtn" onclick="createElement()">Create</button>
+    </div>
+  </div>
+
+  <!-- Action Sheet -->
+  <div class="sheet-overlay" id="actionSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="actionSheetTitle">Connect Element</div>
+      <div class="sheet-options" id="actionOptions"></div>
+    </div>
+  </div>
+
+  <!-- Name Slice Sheet -->
+  <div class="sheet-overlay" id="sliceNameSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">🎉 Pattern detected!</div>
+      <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 14px;" id="slicePatternDesc"></p>
+      <input type="text" class="sheet-input" id="sliceNameInput" placeholder="e.g. Create Order">
+      <button class="sheet-btn" onclick="nameSlice()">Save Slice</button>
+      <div style="text-align: center; padding: 12px; color: var(--text-muted); cursor: pointer;" onclick="dismissSlicePrompt()">Skip for now</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // State
+    let elements = [];
+    let slices = [];
+    let connections = [];
+    let selectedType = null;
+    let selectedElement = null;
+    let pendingSlice = null;
+
+    const typeIcons = {
+      event: '🟧',
+      command: '🟦',
+      readModel: '🟩',
+      screen: '⏹️',
+      processor: '⚙️'
+    };
+
+    const typeLabels = {
+      event: 'Event',
+      command: 'Command',
+      readModel: 'Read Model',
+      screen: 'Screen',
+      processor: 'Processor'
+    };
+
+    // Actions available for each element type
+    const elementActions = {
+      event: [
+        { label: 'What produces this?', target: 'command', relation: 'producer', sliceType: 'SC' },
+        { label: 'What does this update?', target: 'readModel', relation: 'consumer', sliceType: 'SV' },
+        { label: 'What does this trigger?', target: 'processor', relation: 'trigger', sliceType: 'AU' }
+      ],
+      command: [
+        { label: 'What screen triggers this?', target: 'screen', relation: 'input' },
+        { label: 'What events does this produce?', target: 'event', relation: 'produces' }
+      ],
+      readModel: [
+        { label: 'What events update this?', target: 'event', relation: 'updatedBy' },
+        { label: 'What screen displays this?', target: 'screen', relation: 'display' }
+      ],
+      processor: [
+        { label: 'What command does this invoke?', target: 'command', relation: 'invokes' },
+        { label: 'What context does this need?', target: 'readModel', relation: 'context' }
+      ],
+      screen: [
+        { label: 'What command does this trigger?', target: 'command', relation: 'triggers' },
+        { label: 'What does this display?', target: 'readModel', relation: 'displays' }
+      ]
+    };
+
+    // UI Functions
+    function showSheet(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    function hideSheet(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function hideAllSheets() {
+      document.querySelectorAll('.sheet-overlay').forEach(s => s.classList.remove('active'));
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // FAB click
+    document.getElementById('fab').onclick = () => showSheet('createSheet');
+
+    // Close sheets on overlay click
+    document.querySelectorAll('.sheet-overlay').forEach(overlay => {
+      overlay.onclick = (e) => {
+        if (e.target === overlay) hideAllSheets();
+      };
+    });
+
+    // Select element type
+    function selectType(type) {
+      selectedType = type;
+      hideSheet('createSheet');
+      document.getElementById('nameSheetTitle').textContent = `Name your ${typeLabels[type]}`;
+      document.getElementById('elementNameInput').value = '';
+      document.getElementById('elementNameInput').placeholder = type === 'event' ? 'e.g. OrderCreated' : 
+        type === 'command' ? 'e.g. CreateOrder' :
+        type === 'readModel' ? 'e.g. OrderList' :
+        type === 'screen' ? 'e.g. OrderForm' : 'e.g. NotificationHandler';
+      showSheet('nameSheet');
+      setTimeout(() => document.getElementById('elementNameInput').focus(), 300);
+    }
+
+    // Create element
+    function createElement() {
+      const name = document.getElementById('elementNameInput').value.trim();
+      if (!name) return;
+
+      const element = {
+        id: 'el_' + Date.now(),
+        type: selectedType,
+        name: name,
+        properties: [],
+        connections: []
+      };
+
+      elements.push(element);
+      hideAllSheets();
+      showToast(`${typeLabels[selectedType]} created!`);
+      render();
+    }
+
+    // Enter key to submit
+    document.getElementById('elementNameInput').onkeydown = (e) => {
+      if (e.key === 'Enter') createElement();
+    };
+
+    document.getElementById('sliceNameInput').onkeydown = (e) => {
+      if (e.key === 'Enter') nameSlice();
+    };
+
+    // Toggle element expansion
+    function toggleElement(id) {
+      const card = document.querySelector(`[data-id="${id}"]`);
+      card.classList.toggle('expanded');
+    }
+
+    // Show actions for element
+    function showActions(id, e) {
+      e.stopPropagation();
+      selectedElement = elements.find(el => el.id === id);
+      const actions = elementActions[selectedElement.type];
+      
+      document.getElementById('actionSheetTitle').textContent = selectedElement.name;
+      document.getElementById('actionOptions').innerHTML = actions.map(action => `
+        <div class="sheet-option" onclick="executeAction('${action.relation}', '${action.target}', '${action.sliceType || ''}')">
+          <div class="sheet-option-icon" style="background: var(--${action.target}); color: ${action.target === 'command' || action.target === 'processor' ? '#fff' : '#000'};">${typeIcons[action.target]}</div>
+          <div class="sheet-option-text">
+            <div class="sheet-option-title">${action.label}</div>
+            <div class="sheet-option-desc">Connect to ${typeLabels[action.target]}</div>
+          </div>
+        </div>
+      `).join('');
+      
+      showSheet('actionSheet');
+    }
+
+    // Execute connection action
+    function executeAction(relation, targetType, sliceType) {
+      hideAllSheets();
+      
+      // For demo, create a new element and connect
+      selectedType = targetType;
+      const name = prompt(`Name the ${typeLabels[targetType]}:`);
+      if (!name) return;
+
+      const newElement = {
+        id: 'el_' + Date.now(),
+        type: targetType,
+        name: name,
+        properties: [],
+        connections: []
+      };
+      elements.push(newElement);
+
+      // Create connection
+      const connection = {
+        from: relation === 'producer' || relation === 'trigger' ? newElement.id : selectedElement.id,
+        to: relation === 'producer' || relation === 'trigger' ? selectedElement.id : newElement.id,
+        relation: relation
+      };
+      connections.push(connection);
+
+      // Check for slice pattern
+      if (sliceType) {
+        let sliceElements = [];
+        if (sliceType === 'SC') {
+          sliceElements = [newElement.id, selectedElement.id]; // command -> event
+        } else if (sliceType === 'SV') {
+          sliceElements = [selectedElement.id, newElement.id]; // event -> readModel
+        } else if (sliceType === 'AU') {
+          sliceElements = [selectedElement.id, newElement.id]; // event -> processor (incomplete)
+        }
+
+        pendingSlice = {
+          id: 'slice_' + Date.now(),
+          type: sliceType,
+          elements: sliceElements,
+          name: null
+        };
+
+        // Show slice naming prompt
+        document.getElementById('slicePatternDesc').textContent = 
+          sliceType === 'SC' ? `Command → Event forms a State Change slice` :
+          sliceType === 'SV' ? `Event → Read Model forms a State View slice` :
+          `Event → Processor starts an Automation slice`;
+        document.getElementById('sliceNameInput').value = '';
+        document.getElementById('sliceNameInput').placeholder = 
+          sliceType === 'SC' ? 'e.g. Create Order' :
+          sliceType === 'SV' ? 'e.g. Order List View' : 'e.g. Notify on Order';
+        
+        setTimeout(() => {
+          showSheet('sliceNameSheet');
+          setTimeout(() => document.getElementById('sliceNameInput').focus(), 300);
+        }, 300);
+      }
+
+      showToast(`${typeLabels[targetType]} connected!`);
+      render();
+    }
+
+    // Name slice
+    function nameSlice() {
+      const name = document.getElementById('sliceNameInput').value.trim();
+      if (!name || !pendingSlice) return;
+
+      pendingSlice.name = name;
+      slices.push(pendingSlice);
+      pendingSlice = null;
+      hideAllSheets();
+      showToast('Slice saved! 🎉');
+      render();
+    }
+
+    // Dismiss slice prompt
+    function dismissSlicePrompt() {
+      pendingSlice = null;
+      hideAllSheets();
+    }
+
+    // Render
+    function render() {
+      const feed = document.getElementById('feed');
+      document.getElementById('emptyState').style.display = elements.length ? 'none' : 'block';
+
+      // Get elements that are in slices
+      const slicedElementIds = new Set(slices.flatMap(s => s.elements));
+
+      // Render slices first
+      let html = slices.map(slice => {
+        const sliceElements = slice.elements.map(id => elements.find(el => el.id === id)).filter(Boolean);
+        return `
+          <div class="slice-card">
+            <div class="slice-header">
+              <span class="slice-name">${slice.name}</span>
+              <span class="slice-type">${slice.type}</span>
+            </div>
+            <div class="slice-elements">
+              ${sliceElements.map((el, i) => `
+                ${i > 0 ? '<div class="slice-arrow">↓</div>' : ''}
+                <div class="slice-element">
+                  <div class="slice-element-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
+                  <span>${el.name}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="scenarios">
+              <div class="scenario">
+                <div class="scenario-name success">✅ Happy path</div>
+                <div class="scenario-line">Given: []</div>
+                <div class="scenario-line">When: ${sliceElements.find(e => e.type === 'command')?.name || '...'}</div>
+                <div class="scenario-line">Then: ${sliceElements.find(e => e.type === 'event')?.name || sliceElements.find(e => e.type === 'readModel')?.name || '...'}</div>
+              </div>
+              <div class="add-scenario">+ Add Scenario</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Render loose elements (not in slices)
+      const looseElements = elements.filter(el => !slicedElementIds.has(el.id));
+      html += looseElements.map(el => `
+        <div class="element-card" data-id="${el.id}">
+          <div class="element-header" onclick="toggleElement('${el.id}')">
+            <div class="element-icon ${el.type}">${typeIcons[el.type]}</div>
+            <div class="element-info">
+              <div class="element-name">${el.name}</div>
+              <div class="element-type">${typeLabels[el.type]}</div>
+            </div>
+            <div class="element-chevron">▼</div>
+          </div>
+          <div class="element-properties">
+            ${el.properties.length ? el.properties.map(p => `<div class="property">${p}</div>`).join('') : '<div class="property" style="font-style: italic;">No properties yet</div>'}
+            <div class="add-property">+ Add property</div>
+          </div>
+          <div class="element-actions">
+            ${elementActions[el.type].map(action => `
+              <button class="action-btn" onclick="showActions('${el.id}', event)">${action.label}</button>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      // Only update the dynamic content
+      const emptyState = document.getElementById('emptyState').outerHTML;
+      feed.innerHTML = emptyState + html;
+    }
+
+    // Initial render
+    render();
+  </script>
+</body>
+</html>
