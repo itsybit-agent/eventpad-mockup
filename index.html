@@ -1128,6 +1128,13 @@
       hideAllSheets();
     }
 
+    function promptSliceName(sliceId) {
+      pendingSliceId = sliceId;
+      document.getElementById('sliceNameInput').value = '';
+      document.getElementById('sliceNameInput').placeholder = 'Enter slice name';
+      showSheet('sliceNameSheet');
+    }
+
     let pendingPicker = null;
 
     function showPicker(targetType, relation, sliceType) {
@@ -1323,7 +1330,7 @@
       `).join('');
 
       const elements = Object.values(state.elements);
-      const slices = Object.values(state.slices).filter(s => s.name); // Only named slices
+      const slices = Object.values(state.slices); // Show all slices (named and unnamed)
       
       document.getElementById('emptyState').style.display = elements.length ? 'none' : 'block';
 
@@ -1339,9 +1346,9 @@
         
         return `
           <div class="slice-card">
-            <div class="slice-header">
-              <span class="slice-name">${slice.name}</span>
-              <span class="slice-type">${slice.type}</span>
+            <div class="slice-header" onclick="${!slice.name ? `promptSliceName('${slice.id}')` : ''}" style="${!slice.name ? 'cursor: pointer;' : ''}"
+              <span class="slice-name">${slice.name || '(tap to name)'}</span>
+              <span class="slice-type">${slice.type}${slice.complete === false ? ' ⏳' : ''}</span>
             </div>
             <div class="slice-elements">
               ${sliceElements.map((el, i) => `
