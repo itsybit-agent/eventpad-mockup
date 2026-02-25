@@ -555,6 +555,16 @@
     </div>
   </div>
 
+  <!-- Element Picker Sheet (for picking existing elements) -->
+  <div class="sheet-overlay" id="pickerSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="pickerSheetTitle">Pick Command</div>
+      <div class="sheet-options" id="pickerOptions"></div>
+      <div style="text-align: center; padding: 12px; color: var(--text-muted); font-size: 13px;" id="pickerEmpty">No elements available</div>
+    </div>
+  </div>
+
   <!-- Name Slice Sheet -->
   <div class="sheet-overlay" id="sliceNameSheet">
     <div class="sheet">
@@ -736,6 +746,12 @@
           case EventTypes.SliceDeleted:
             delete state.slices[event.data.sliceId];
             break;
+          
+          case 'SliceCompleted':
+            if (state.slices[event.data.sliceId]) {
+              state.slices[event.data.sliceId].complete = true;
+            }
+            break;
         }
       }
 
@@ -772,8 +788,8 @@
         { label: 'What screen displays this?', target: 'screen', relation: 'display' }
       ],
       processor: [
-        { label: 'What command does this invoke?', target: 'command', relation: 'invokes' },
-        { label: 'What context does this need?', target: 'readModel', relation: 'context' }
+        { label: 'What command does this invoke?', target: 'command', relation: 'invokes', picker: true },
+        { label: 'What context does this need?', target: 'readModel', relation: 'context', picker: true }
       ],
       screen: [
         { label: 'What command does this trigger?', target: 'command', relation: 'triggers' },
@@ -1060,11 +1076,11 @@
       
       document.getElementById('actionSheetTitle').textContent = selectedElement.name;
       document.getElementById('actionOptions').innerHTML = actions.map(action => `
-        <div class="sheet-option" onclick="dispatchConnection('${action.relation}', '${action.target}', '${action.sliceType || ''}')">
+        <div class="sheet-option" onclick="${action.picker ? `showPicker('${action.target}', '${action.relation}', '${action.sliceType || ''}')` : `dispatchConnection('${action.relation}', '${action.target}', '${action.sliceType || ''}')`}">
           <div class="sheet-option-icon" style="background: var(--${action.target}); color: ${action.target === 'command' || action.target === 'processor' ? '#fff' : '#000'};">${typeIcons[action.target]}</div>
           <div class="sheet-option-text">
             <div class="sheet-option-title">${action.label}</div>
-            <div class="sheet-option-desc">Connect to ${typeLabels[action.target]}</div>
+            <div class="sheet-option-desc">${action.picker ? 'Pick existing' : 'Create new'} ${typeLabels[action.target]}</div>
           </div>
         </div>
       `).join('');
@@ -1075,6 +1091,86 @@
     function dismissSlicePrompt() {
       pendingSliceId = null;
       hideAllSheets();
+    }
+
+    let pendingPicker = null;
+
+    function showPicker(targetType, relation, sliceType) {
+      hideAllSheets();
+      
+      const state = projectState();
+      const availableElements = Object.values(state.elements)
+        .filter(el => el.type === targetType);
+      
+      document.getElementById('pickerSheetTitle').textContent = `Pick ${typeLabels[targetType]}`;
+      
+      const pickerOptions = document.getElementById('pickerOptions');
+      const pickerEmpty = document.getElementById('pickerEmpty');
+      
+      if (availableElements.length === 0) {
+        pickerOptions.innerHTML = '';
+        pickerEmpty.style.display = 'block';
+      } else {
+        pickerEmpty.style.display = 'none';
+        pickerOptions.innerHTML = availableElements.map(el => `
+          <div class="sheet-option" onclick="pickElement('${el.id}')">
+            <div class="sheet-option-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
+            <div class="sheet-option-text">
+              <div class="sheet-option-title">${el.name}</div>
+              <div class="sheet-option-desc">${typeLabels[el.type]}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      pendingPicker = { targetType, relation, sliceType };
+      showSheet('pickerSheet');
+    }
+
+    function pickElement(elementId) {
+      if (!pendingPicker) return;
+      
+      const { targetType, relation, sliceType } = pendingPicker;
+      const state = projectState();
+      const pickedElement = state.elements[elementId];
+      
+      hideAllSheets();
+      
+      // Create connection to existing element
+      const fromId = selectedElement.id;
+      const toId = elementId;
+      
+      appendEvent(EventTypes.ProducerSet, {
+        fromId,
+        toId,
+        relation
+      });
+      
+      // Check if selected element is in a slice, add picked element to it
+      const existingSlice = Object.values(state.slices).find(s => 
+        s.elements.includes(selectedElement.id)
+      );
+      
+      if (existingSlice) {
+        appendEvent('SliceElementAdded', {
+          sliceId: existingSlice.id,
+          elementId: elementId
+        });
+        
+        // If this completes an AU slice (added command to processor)
+        if (existingSlice.type === 'AU' && targetType === 'command') {
+          appendEvent('SliceCompleted', {
+            sliceId: existingSlice.id
+          });
+        }
+        
+        showToast(`${pickedElement.name} added to slice!`);
+      } else {
+        showToast(`Connected to ${pickedElement.name}`);
+      }
+      
+      pendingPicker = null;
+      render();
     }
 
     // ===========================================
