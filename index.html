@@ -274,6 +274,12 @@
       gap: 10px;
       padding: 8px 0;
     }
+    .slice-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
     .slice-element-icon {
       width: 28px;
       height: 28px;
@@ -1349,6 +1355,73 @@
     // RENDER
     // ===========================================
     
+    function renderSliceElements(elements, sliceType) {
+      if (sliceType === 'AU') {
+        // AU: Group command and readModels on same row
+        const processor = elements.find(e => e.type === 'processor');
+        const command = elements.find(e => e.type === 'command');
+        const readModels = elements.filter(e => e.type === 'readModel');
+        const events = elements.filter(e => e.type === 'event');
+        
+        let html = '';
+        
+        // Processor at top
+        if (processor) {
+          html += `
+            <div class="slice-element">
+              <div class="slice-element-icon" style="background: var(--processor); color: #fff;">⚙️</div>
+              <span>${processor.name}</span>
+            </div>
+          `;
+        }
+        
+        // Command + ReadModels on same row
+        if (command || readModels.length > 0) {
+          if (processor) html += '<div class="slice-arrow">↓</div>';
+          html += '<div class="slice-row">';
+          if (command) {
+            html += `
+              <div class="slice-element">
+                <div class="slice-element-icon" style="background: var(--command); color: #fff;">🟦</div>
+                <span>${command.name}</span>
+              </div>
+            `;
+          }
+          readModels.forEach(rm => {
+            html += `
+              <div class="slice-element">
+                <div class="slice-element-icon" style="background: var(--readmodel); color: #000;">🟩</div>
+                <span>${rm.name}</span>
+              </div>
+            `;
+          });
+          html += '</div>';
+        }
+        
+        // Events at bottom
+        events.forEach((evt, i) => {
+          html += '<div class="slice-arrow">↓</div>';
+          html += `
+            <div class="slice-element">
+              <div class="slice-element-icon" style="background: var(--event); color: #000;">🟧</div>
+              <span>${evt.name}</span>
+            </div>
+          `;
+        });
+        
+        return html;
+      }
+      
+      // Default: vertical list
+      return elements.map((el, i) => `
+        ${i > 0 ? '<div class="slice-arrow">↓</div>' : ''}
+        <div class="slice-element">
+          <div class="slice-element-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
+          <span>${el.name}</span>
+        </div>
+      `).join('');
+    }
+    
     function render() {
       const state = projectState();
       const feed = document.getElementById('feed');
@@ -1388,13 +1461,7 @@
               <span class="slice-type">${slice.type}${slice.complete === false ? ' ⏳' : ''}</span>
             </div>
             <div class="slice-elements">
-              ${sliceElements.map((el, i) => `
-                ${i > 0 ? '<div class="slice-arrow">↓</div>' : ''}
-                <div class="slice-element">
-                  <div class="slice-element-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
-                  <span>${el.name}</span>
-                </div>
-              `).join('')}
+              ${renderSliceElements(sliceElements, slice.type)}
             </div>
             <div class="scenarios">
               <div class="scenario">
