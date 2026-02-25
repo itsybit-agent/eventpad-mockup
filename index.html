@@ -172,6 +172,37 @@
     }
     .element-card.expanded .element-chevron { transform: rotate(180deg); }
     
+    /* Connections */
+    .element-connections {
+      padding: 0 16px 12px;
+      font-size: 12px;
+    }
+    .connection-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+    .connection-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .connection-label {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .connection-name {
+      color: var(--text);
+    }
+
     /* Properties */
     .element-properties {
       display: none;
@@ -997,27 +1028,85 @@
 
       // Render loose elements
       const looseElements = elements.filter(el => !slicedElementIds.has(el.id));
-      html += looseElements.map(el => `
-        <div class="element-card" data-id="${el.id}">
-          <div class="element-header" onclick="toggleElement('${el.id}')">
-            <div class="element-icon ${el.type}">${typeIcons[el.type]}</div>
-            <div class="element-info">
-              <div class="element-name">${el.name}</div>
-              <div class="element-type">${typeLabels[el.type]}</div>
+      html += looseElements.map(el => {
+        // Find connections for this element
+        const connectionsFrom = state.connections.filter(c => c.from === el.id);
+        const connectionsTo = state.connections.filter(c => c.to === el.id);
+        
+        const connectionLabels = {
+          producer: 'produces',
+          consumer: 'updates',
+          trigger: 'triggers',
+          invokes: 'invokes',
+          input: 'triggered by',
+          display: 'displayed on',
+          produces: 'produces',
+          updatedBy: 'updated by',
+          triggers: 'triggers',
+          displays: 'displays',
+          context: 'uses context'
+        };
+        
+        let connectionsHtml = '';
+        
+        // Outgoing connections
+        connectionsFrom.forEach(conn => {
+          const targetEl = state.elements[conn.to];
+          if (targetEl) {
+            connectionsHtml += `
+              <div class="connection-item">
+                <span class="connection-label">${connectionLabels[conn.relation] || conn.relation}:</span>
+                <div class="connection-icon" style="background: var(--${targetEl.type}); color: ${targetEl.type === 'command' || targetEl.type === 'processor' ? '#fff' : '#000'};">${typeIcons[targetEl.type]}</div>
+                <span class="connection-name">${targetEl.name}</span>
+              </div>
+            `;
+          }
+        });
+        
+        // Incoming connections
+        connectionsTo.forEach(conn => {
+          const sourceEl = state.elements[conn.from];
+          if (sourceEl) {
+            const reverseLabels = {
+              producer: 'produced by',
+              consumer: 'updated by',
+              trigger: 'triggered by',
+              invokes: 'invoked by',
+              produces: 'produced by'
+            };
+            connectionsHtml += `
+              <div class="connection-item">
+                <span class="connection-label">${reverseLabels[conn.relation] || 'from'}:</span>
+                <div class="connection-icon" style="background: var(--${sourceEl.type}); color: ${sourceEl.type === 'command' || sourceEl.type === 'processor' ? '#fff' : '#000'};">${typeIcons[sourceEl.type]}</div>
+                <span class="connection-name">${sourceEl.name}</span>
+              </div>
+            `;
+          }
+        });
+        
+        return `
+          <div class="element-card" data-id="${el.id}">
+            <div class="element-header" onclick="toggleElement('${el.id}')">
+              <div class="element-icon ${el.type}">${typeIcons[el.type]}</div>
+              <div class="element-info">
+                <div class="element-name">${el.name}</div>
+                <div class="element-type">${typeLabels[el.type]}</div>
+              </div>
+              <div class="element-chevron">▼</div>
             </div>
-            <div class="element-chevron">▼</div>
+            ${connectionsHtml ? `<div class="element-connections">${connectionsHtml}</div>` : ''}
+            <div class="element-properties">
+              ${el.properties.length ? el.properties.map(p => `<div class="property">${p.name}</div>`).join('') : '<div class="property" style="font-style: italic;">No properties yet</div>'}
+              <div class="add-property">+ Add property</div>
+            </div>
+            <div class="element-actions">
+              ${elementActions[el.type].map(action => `
+                <button class="action-btn" onclick="showActions('${el.id}', event)">${action.label}</button>
+              `).join('')}
+            </div>
           </div>
-          <div class="element-properties">
-            ${el.properties.length ? el.properties.map(p => `<div class="property">${p.name}</div>`).join('') : '<div class="property" style="font-style: italic;">No properties yet</div>'}
-            <div class="add-property">+ Add property</div>
-          </div>
-          <div class="element-actions">
-            ${elementActions[el.type].map(action => `
-              <button class="action-btn" onclick="showActions('${el.id}', event)">${action.label}</button>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       feed.innerHTML = document.getElementById('emptyState').outerHTML + html;
     }
