@@ -866,18 +866,15 @@
           }
           
           // Check for pre-connected elements (screens at start, readModels at end)
-          console.log('Looking for pre-connected screens for command:', commandId);
-          console.log('All connections:', state.connections);
+          const allInputConns = state.connections.filter(c => c.relation === 'input');
+          const matchingConns = state.connections.filter(c => c.from === commandId && c.relation === 'input');
           
-          const inputScreens = state.connections
-            .filter(c => {
-              console.log('Checking connection:', c, 'match:', c.from === commandId, c.relation === 'input');
-              return c.from === commandId && c.relation === 'input';
-            })
+          // Debug toast
+          alert(`Command: ${commandId}\nInput connections: ${allInputConns.length}\nMatching: ${matchingConns.length}\nConn details: ${JSON.stringify(allInputConns)}`);
+          
+          const inputScreens = matchingConns
             .map(c => c.to)
             .filter(id => state.elements[id]?.type === 'screen');
-          
-          console.log('Found input screens:', inputScreens);
           
           const outputReadModels = state.connections
             .filter(c => c.from === eventId && c.relation === 'consumer')
