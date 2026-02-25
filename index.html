@@ -906,9 +906,9 @@
             .map(c => c.to)
             .filter(id => state.elements[id]?.type === 'screen');
           
-          // Build elements array: [readModel, events..., screens...]
-          // ReadModel at top, events below (what updates it), screen at end
-          elements = [readModelId, ...otherEvents, ...eventIds, ...displayScreens];
+          // Build elements array: [screens..., readModel, events...]
+          // Screen at top (what user sees), readModel, then events (what updates it)
+          elements = [...displayScreens, readModelId, ...otherEvents, ...eventIds];
           
         } else if (sliceType === 'AU') {
           elements = [selectedElement.id, newElementId]; // event -> processor

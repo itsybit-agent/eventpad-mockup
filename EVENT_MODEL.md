@@ -175,9 +175,9 @@ Then:
   Connected { fromId: "e2", toId: "rm1", relation: "consumer" }
   SliceElementAdded { sliceId: "s1", elementId: "e2", position: "start" }
 ```
-**Result:** SV slice elements = [🟩 OrderList, 🟧 OrderCreated, 🟧 OrderCanceled]
+**Result:** SV slice elements = [⏹️ Dashboard, 🟩 OrderList, 🟧 OrderCreated, 🟧 OrderCanceled]
 
-**SV slice order:** ReadModel at top, events below (what updates it), display screen at end
+**SV slice order:** Screen at top (what user sees), ReadModel, then events (what updates it)
 
 ---
 
