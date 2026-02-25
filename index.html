@@ -1074,19 +1074,27 @@
       selectedElement = state.elements[id];
       let actions = elementActions[selectedElement.type] || [];
       
-      // Context-aware filtering for processors in AU slice
+      // Context-aware filtering for processors
       if (selectedElement.type === 'processor') {
         const inSlice = Object.values(state.slices).find(s => 
-          s.elements.includes(selectedElement.id)
+          s.elements.includes(selectedElement.id) && s.type === 'AU'
         );
         
-        if (inSlice && inSlice.type === 'AU') {
-          // Already has trigger, remove that action
-          actions = actions.filter(a => a.relation !== 'trigger');
+        if (inSlice) {
+          // Already in AU slice - no more actions needed
+          actions = [];
+        } else {
+          // Check if trigger is set (but not yet in slice)
+          const hasTrigger = state.connections.some(c => 
+            c.to === selectedElement.id && c.relation === 'trigger'
+          );
           
-          // If slice is complete, remove command action too
-          if (inSlice.complete) {
-            actions = actions.filter(a => a.relation !== 'invokes');
+          if (hasTrigger) {
+            // Has trigger, only show "What command?"
+            actions = actions.filter(a => a.relation === 'invokes');
+          } else {
+            // No trigger yet, only show "What triggers?"
+            actions = actions.filter(a => a.relation === 'trigger');
           }
         }
       }
@@ -1178,7 +1186,60 @@
       
       hideAllSheets();
       
-      // Create connection to existing element
+      // Special case: Processor picking command - create AU slice if trigger exists
+      if (selectedElement.type === 'processor' && targetType === 'command') {
+        // Find trigger connection for this processor
+        const triggerConn = state.connections.find(c => 
+          c.to === selectedElement.id && c.relation === 'trigger'
+        );
+        
+        if (triggerConn) {
+          // Create connection to command
+          appendEvent(EventTypes.ProducerSet, {
+            fromId: selectedElement.id,
+            toId: elementId,
+            relation: 'invokes'
+          });
+          
+          // Get the readModelId from trigger event's SV slice
+          const triggerEventId = triggerConn.from;
+          const svSlice = Object.values(state.slices).find(s => 
+            s.type === 'SV' && s.elements.includes(triggerEventId)
+          );
+          const readModelId = svSlice?.elements.find(id => 
+            state.elements[id]?.type === 'readModel'
+          );
+          
+          // Now create complete AU slice
+          const sliceId = 'slice_' + Date.now();
+          const elements = [triggerEventId];
+          if (readModelId) elements.push(readModelId);
+          elements.push(selectedElement.id, elementId); // processor, command
+          
+          appendEvent(EventTypes.SliceInferred, {
+            sliceId,
+            sliceType: 'AU',
+            elements,
+            complete: true
+          });
+          
+          showToast(`AU slice created!`);
+          
+          // Prompt for name
+          pendingSliceId = sliceId;
+          setTimeout(() => {
+            document.getElementById('sliceNameInput').value = '';
+            document.getElementById('sliceNameInput').placeholder = `e.g. ${selectedElement.name} Automation`;
+            showSheet('sliceNameSheet');
+          }, 300);
+          
+          pendingPicker = null;
+          render();
+          return;
+        }
+      }
+      
+      // Default: Create connection to existing element
       const fromId = selectedElement.id;
       const toId = elementId;
       
@@ -1198,13 +1259,6 @@
           sliceId: existingSlice.id,
           elementId: elementId
         });
-        
-        // If this completes an AU slice (added command to processor)
-        if (existingSlice.type === 'AU' && targetType === 'command') {
-          appendEvent('SliceCompleted', {
-            sliceId: existingSlice.id
-          });
-        }
         
         showToast(`${pickedElement.name} added to slice!`);
       } else {
@@ -1279,32 +1333,15 @@
       const evt = state.elements[eventId];
       const rm = state.elements[readModelId];
       
-      // Create TriggerSet connection
+      // Create TriggerSet connection - NO slice yet, just store trigger info
       appendEvent(EventTypes.TriggerSet, {
         fromId: eventId,
         toId: processorId,
-        relation: 'trigger'
+        relation: 'trigger',
+        readModelId: readModelId  // Store associated readModel for later
       });
       
-      // Infer AU slice with event, readModel, and processor
-      const sliceId = 'slice_' + Date.now();
-      appendEvent(EventTypes.SliceInferred, {
-        sliceId,
-        sliceType: 'AU',
-        elements: [eventId, readModelId, processorId],
-        complete: false  // Not complete until command is set
-      });
-      
-      showToast(`AU slice started: ${evt.name} + ${rm.name}`);
-      
-      // Prompt for slice name
-      pendingSliceId = sliceId;
-      setTimeout(() => {
-        document.getElementById('sliceNameInput').value = '';
-        document.getElementById('sliceNameInput').placeholder = `e.g. ${selectedElement.name} Automation`;
-        showSheet('sliceNameSheet');
-      }, 300);
-      
+      showToast(`Trigger set: ${evt.name}. Now pick a command.`);
       render();
     }
 
