@@ -310,6 +310,68 @@ Then:
 
 ---
 
+---
+
+## 📖 Slice Element Order
+
+### SV: Slice Element Order
+🟧 SliceInferred, SliceElementAdded
+🟩 SliceElementOrder { sliceId, sliceType, orderedElements: ElementId[] }
+
+**Ordering hierarchy (top to bottom):**
+```
+⏹️ Screen / ⚙️ Processor   ← top (UI/automation layer)
+🟦 Command / 🟩 ReadModel   ← middle (what happens / what's shown)
+🟧 Events                   ← bottom (facts, lowest level)
+```
+
+**Order by slice type:**
+
+| SliceType | Order (top → bottom) |
+|-----------|---------------------|
+| SC | ⏹️ input, 🟦 command, 🟩 readModel?, 🟧 events..., ⏹️ display? |
+| SV | ⏹️ display?, 🟩 readModel, 🟧 events... |
+| AU | ⚙️ processor, 🟦 command, 🟩 context..., 🟧 trigger, 🟧 outputs... |
+
+✅ "SC elements ordered: screen, command, readModel, events"
+```
+Given:
+  ElementCreated { elementId: "scr1", elementType: "screen" }
+  ElementCreated { elementId: "c1", elementType: "command" }
+  ElementCreated { elementId: "e1", elementType: "event" }
+  ElementCreated { elementId: "rm1", elementType: "readModel" }
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["scr1", "c1", "e1", "rm1"] }
+Then:
+  SliceElementOrder { sliceId: "s1", orderedElements: ["scr1", "c1", "rm1", "e1"] }
+```
+
+✅ "SV elements ordered: screen, readModel, events"
+```
+Given:
+  ElementCreated { elementId: "scr1", elementType: "screen" }
+  ElementCreated { elementId: "rm1", elementType: "readModel" }
+  ElementCreated { elementId: "e1", elementType: "event" }
+  ElementCreated { elementId: "e2", elementType: "event" }
+  SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["scr1", "rm1", "e1", "e2"] }
+Then:
+  SliceElementOrder { sliceId: "s1", orderedElements: ["scr1", "rm1", "e1", "e2"] }
+```
+
+✅ "AU elements ordered: processor, command, context, events"
+```
+Given:
+  ElementCreated { elementId: "p1", elementType: "processor" }
+  ElementCreated { elementId: "c1", elementType: "command" }
+  ElementCreated { elementId: "rm1", elementType: "readModel" }
+  ElementCreated { elementId: "e1", elementType: "event" }
+  ElementCreated { elementId: "e2", elementType: "event" }
+  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["p1", "c1", "rm1", "e1", "e2"] }
+Then:
+  SliceElementOrder { sliceId: "s1", orderedElements: ["p1", "c1", "rm1", "e1", "e2"] }
+```
+
+---
+
 ## Event Types Summary
 
 | Event | Data |

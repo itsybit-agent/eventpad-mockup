@@ -635,6 +635,27 @@
     // PROJECTIONS (Read Models)
     // ===========================================
     
+    // Element ordering hierarchy (top to bottom)
+    // Screens/Processors → Commands/ReadModels → Events
+    function getElementOrder(elementType) {
+      const order = {
+        'screen': 1,
+        'processor': 1,
+        'command': 2,
+        'readModel': 3,
+        'event': 4
+      };
+      return order[elementType] || 5;
+    }
+
+    function sortSliceElements(elements, state) {
+      return [...elements].sort((a, b) => {
+        const typeA = state.elements[a]?.type;
+        const typeB = state.elements[b]?.type;
+        return getElementOrder(typeA) - getElementOrder(typeB);
+      });
+    }
+
     function projectState() {
       const state = {
         elements: {},      // id -> element
@@ -685,7 +706,7 @@
             state.slices[event.data.sliceId] = {
               id: event.data.sliceId,
               type: event.data.sliceType,
-              elements: event.data.elements,
+              elements: sortSliceElements(event.data.elements, state),
               name: null,
               complete: event.data.complete
             };
@@ -706,22 +727,9 @@
           case 'SliceElementAdded':
             if (state.slices[event.data.sliceId]) {
               const slice = state.slices[event.data.sliceId];
-              // Insert at position based on element type
-              if (event.data.position === 'start') {
-                slice.elements.unshift(event.data.elementId);
-              } else if (event.data.position === 'afterCommand') {
-                // Find command and insert after it
-                const cmdIndex = slice.elements.findIndex(id => 
-                  state.elements[id]?.type === 'command'
-                );
-                if (cmdIndex >= 0) {
-                  slice.elements.splice(cmdIndex + 1, 0, event.data.elementId);
-                } else {
-                  slice.elements.push(event.data.elementId);
-                }
-              } else {
-                slice.elements.push(event.data.elementId);
-              }
+              // Add element and re-sort by type hierarchy
+              slice.elements.push(event.data.elementId);
+              slice.elements = sortSliceElements(slice.elements, state);
             }
             break;
             
