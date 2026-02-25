@@ -1109,8 +1109,8 @@
           );
           
           if (hasTrigger) {
-            // Has trigger, only show "What command?"
-            actions = actions.filter(a => a.relation === 'invokes');
+            // Has trigger, show "What additional context?" + "What command?"
+            actions = actions.filter(a => a.relation === 'context' || a.relation === 'invokes');
           } else {
             // No trigger yet, only show "What triggers?"
             actions = actions.filter(a => a.relation === 'trigger');
@@ -1248,14 +1248,23 @@
           const svSlice = Object.values(state.slices).find(s => 
             s.type === 'SV' && s.elements.includes(triggerEventId)
           );
-          const readModelId = svSlice?.elements.find(id => 
+          const primaryReadModelId = svSlice?.elements.find(id => 
             state.elements[id]?.type === 'readModel'
           );
+          
+          // Get additional context ReadModels
+          const contextConns = state.connections.filter(c => 
+            c.from === selectedElement.id && c.relation === 'context'
+          );
+          const additionalReadModelIds = contextConns.map(c => c.to);
           
           // Now create complete AU slice
           const sliceId = 'slice_' + Date.now();
           const elements = [triggerEventId];
-          if (readModelId) elements.push(readModelId);
+          if (primaryReadModelId) elements.push(primaryReadModelId);
+          additionalReadModelIds.forEach(id => {
+            if (!elements.includes(id)) elements.push(id);
+          });
           elements.push(selectedElement.id, elementId); // processor, command
           
           appendEvent(EventTypes.SliceInferred, {
