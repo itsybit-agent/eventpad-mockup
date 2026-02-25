@@ -1210,6 +1210,7 @@
 
     // SV Picker - shows events from existing SV slices for AU trigger
     function showSVPicker() {
+      alert('showSVPicker called - processor: ' + (selectedElement?.name || 'none'));
       hideAllSheets();
       
       const state = projectState();
