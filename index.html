@@ -92,6 +92,9 @@
       font-weight: 600;
       font-size: 13px;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .event-log-list {
       max-height: 50vh;
@@ -102,8 +105,17 @@
     .event-log-item {
       padding: 8px 12px;
       border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.2s;
     }
+    .event-log-item:hover { background: var(--surface-hover); }
+    .event-log-item:active { background: var(--accent); }
     .event-log-item:last-child { border-bottom: none; }
+    .event-log-item .copied {
+      color: var(--accent);
+      font-size: 10px;
+      margin-left: 8px;
+    }
     .event-log-type { color: var(--event); font-weight: 600; }
     .event-log-data { color: var(--text-muted); margin-top: 4px; white-space: pre-wrap; word-break: break-all; }
     .event-log-time { color: var(--text-muted); font-size: 10px; }
@@ -432,7 +444,10 @@
   </div>
   
   <div class="event-log" id="eventLog">
-    <div class="event-log-header">Event Stream</div>
+    <div class="event-log-header">
+      <span>Event Stream</span>
+      <button class="header-btn" onclick="copyAllEvents()" style="padding: 4px 8px; font-size: 11px;">Copy All</button>
+    </div>
     <div class="event-log-list" id="eventLogList"></div>
   </div>
 
@@ -845,6 +860,38 @@
       document.getElementById('eventLog').classList.toggle('visible');
     }
 
+    async function copyEvent(index, element) {
+      const evt = eventStream[index];
+      const text = JSON.stringify(evt, null, 2);
+      
+      try {
+        await navigator.clipboard.writeText(text);
+        
+        // Show feedback
+        const existing = element.querySelector('.copied');
+        if (existing) existing.remove();
+        
+        const badge = document.createElement('span');
+        badge.className = 'copied';
+        badge.textContent = '✓ copied';
+        element.querySelector('.event-log-type').after(badge);
+        
+        setTimeout(() => badge.remove(), 1500);
+      } catch (err) {
+        showToast('Failed to copy');
+      }
+    }
+    
+    async function copyAllEvents() {
+      const text = JSON.stringify(eventStream, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('All events copied!');
+      } catch (err) {
+        showToast('Failed to copy');
+      }
+    }
+
     function selectType(type) {
       selectedType = type;
       hideSheet('createSheet');
@@ -897,8 +944,8 @@
       document.getElementById('undoBtn').disabled = eventStream.length === 0;
       
       // Update event log
-      document.getElementById('eventLogList').innerHTML = eventStream.slice().reverse().map(evt => `
-        <div class="event-log-item">
+      document.getElementById('eventLogList').innerHTML = eventStream.slice().reverse().map((evt, i) => `
+        <div class="event-log-item" onclick="copyEvent(${eventStream.length - 1 - i}, this)">
           <span class="event-log-type">${evt.type}</span>
           <span class="event-log-time">${new Date(evt.timestamp).toLocaleTimeString()}</span>
           <div class="event-log-data">${JSON.stringify(evt.data, null, 2)}</div>
