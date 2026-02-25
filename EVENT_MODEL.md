@@ -2,6 +2,24 @@
 
 Element-first, slice-inferred event modeling tool.
 
+**All features are modeled as slices** - dogfooding! 🐕
+
+---
+
+## 📖 Feature Slices Overview
+
+| Feature | Type | Screen → Command → Event |
+|---------|------|--------------------------|
+| Create Element | SC | FAB → CreateElement → ElementCreated |
+| Delete Element | SC | ElementCard → DeleteElement → ElementDeleted |
+| Rename Slice | SC | SliceHeader → RenameSlice → SliceNamed |
+| Connect Elements | SC | ActionSheet → Connect → Connected |
+| Undo | SC | UndoButton → Undo → EventPopped |
+| Clear All | SC | ClearButton → ClearAll → AllCleared |
+| Copy Event Log | SC | EventLog → CopyEvents → EventsCopied |
+| View Feed | SV | Feed ← ElementCreated, SliceNamed, ... |
+| View Event Log | SV | EventLogPanel ← all events |
+
 ---
 
 ## 📖 Elements
@@ -254,6 +272,119 @@ Then: SliceNamed { sliceId: "s1", name: "Create Order" }
 │ 🟦 RenameSlice              │
 │ 🟧 SliceNamed               │
 └─────────────────────────────┘
+```
+
+---
+
+## 📖 Delete Element
+
+### SC: Delete Element
+⏹️ ElementCard { elementId, swipe or long-press }
+🟦 DeleteElement { elementId }
+🟧 ElementDeleted { elementId }
+🟩 Feed { element removed }
+
+✅ "Delete loose element"
+```
+Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+When: DeleteElement { elementId: "e1" }
+Then: ElementDeleted { elementId: "e1" }
+```
+
+✅ "Delete element in slice → removes from slice"
+```
+Given:
+  SliceInferred { sliceId: "s1", elements: ["c1", "e1"] }
+  SliceNamed { sliceId: "s1", name: "Create Order" }
+When: DeleteElement { elementId: "e1" }
+Then: 
+  ElementDeleted { elementId: "e1" }
+  SliceElementRemoved { sliceId: "s1", elementId: "e1" }
+```
+
+---
+
+## 📖 Undo
+
+### SC: Undo Last Event
+⏹️ Header { UndoButton }
+🟦 Undo { }
+🟧 EventPopped { poppedEvent }
+🟩 Feed { previous state restored }
+
+✅ "Undo last action"
+```
+Given: 
+  ElementCreated { elementId: "e1", name: "OrderCreated" }
+  ElementCreated { elementId: "e2", name: "OrderShipped" }
+When: Undo { }
+Then: EventPopped { poppedEvent: { type: "ElementCreated", data: { elementId: "e2" } } }
+```
+
+---
+
+## 📖 Clear All
+
+### SC: Clear All Events
+⏹️ Header { ClearButton }
+⏹️ ConfirmDialog { "Clear all?" }
+🟦 ClearAll { }
+🟧 AllCleared { eventCount }
+🟩 Feed { empty }
+
+✅ "Clear all events"
+```
+Given: 
+  ElementCreated { elementId: "e1" }
+  ElementCreated { elementId: "c1" }
+  SliceInferred { sliceId: "s1" }
+When: ClearAll { }
+Then: AllCleared { eventCount: 3 }
+```
+
+---
+
+## 📖 Copy Event Log
+
+### SC: Copy Events
+⏹️ EventLogPanel { tap event or "Copy All" }
+🟦 CopyEvents { eventIds? }
+🟧 EventsCopied { count }
+⏹️ Toast { "Copied!" }
+
+✅ "Copy single event"
+```
+Given: ElementCreated { id: "evt_1", elementId: "e1" }
+When: CopyEvents { eventIds: ["evt_1"] }
+Then: EventsCopied { count: 1 }
+```
+
+✅ "Copy all events"
+```
+Given: 
+  ElementCreated { id: "evt_1" }
+  ElementCreated { id: "evt_2" }
+When: CopyEvents { }
+Then: EventsCopied { count: 2 }
+```
+
+---
+
+## 📖 View Event Log
+
+### SV: Event Log
+🟧 ElementCreated, Connected, SliceInferred, SliceNamed, ...
+🟩 EventLog { events: Event[], count }
+⏹️ EventLogPanel { scrollable list }
+
+✅ "Event log shows all events"
+```
+Given:
+  ElementCreated { elementId: "e1" }
+  ElementCreated { elementId: "c1" }
+  Connected { fromId: "c1", toId: "e1" }
+Then:
+  EventLog { events: [...], count: 3 }
 ```
 
 ---
