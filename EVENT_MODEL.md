@@ -312,6 +312,70 @@ Then:
 
 ---
 
+## 📖 Automation Slice
+
+### SC: Start Automation (Event triggers Processor)
+⏹️ EventCard { eventId }
+⏹️ ActionSheet { "What does this trigger?" }
+🟦 CreateProcessor { eventId, processorId*, processorName }
+🟧 ElementCreated { elementId: processorId, elementType: "processor", name }
+🟧 TriggerSet { eventId, processorId }
+🟧 SliceInferred { sliceId*, sliceType: "AU", elements: [eventId, processorId], complete: false }
+
+✅ "Event triggers processor → starts AU slice (incomplete)"
+```
+Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+When: Connect { fromId: "e1", toId: "p1", relation: "trigger" }
+      + ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
+Then:
+  TriggerSet { eventId: "e1", processorId: "p1" }
+  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["e1", "p1"], complete: false }
+```
+**Note:** AU slice is incomplete until command is set.
+
+### SC: Add Context ReadModel to Automation
+⏹️ ProcessorCard { processorId in AU slice }
+⏹️ ActionSheet { "What context does this need?" }
+⏹️ ReadModelPicker { existing readModels }
+🟦 AddContext { sliceId, readModelId }
+🟧 ContextAdded { sliceId, readModelId }
+🟧 SliceElementAdded { sliceId, elementId: readModelId }
+
+✅ "Add context read model to AU slice"
+```
+Given:
+  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["e1", "p1"], complete: false }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "CustomerProfile" }
+When: AddContext { sliceId: "s1", readModelId: "rm1" }
+Then:
+  ContextAdded { sliceId: "s1", readModelId: "rm1" }
+  SliceElementAdded { sliceId: "s1", elementId: "rm1" }
+```
+
+### SC: Set Automation Command (pick from existing)
+⏹️ ProcessorCard { processorId in AU slice }
+⏹️ ActionSheet { "What command does this invoke?" }
+⏹️ CommandPicker { existing commands only! }
+🟦 SetAutomationCommand { sliceId, commandId }
+🟧 AutomationCommandSet { sliceId, commandId }
+🟧 SliceElementAdded { sliceId, elementId: commandId }
+🟧 SliceCompleted { sliceId }
+
+✅ "Set command from picker → completes AU slice"
+```
+Given:
+  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["e1", "p1"], complete: false }
+  ElementCreated { elementId: "c1", elementType: "command", name: "SendNotification" }
+When: SetAutomationCommand { sliceId: "s1", commandId: "c1" }
+Then:
+  AutomationCommandSet { sliceId: "s1", commandId: "c1" }
+  SliceElementAdded { sliceId: "s1", elementId: "c1" }
+  SliceCompleted { sliceId: "s1" }
+```
+**Note:** Command is PICKED from existing commands, not created inline.
+
+---
+
 ## 📖 Slice Element Order
 
 ### SV: Slice Element Order
