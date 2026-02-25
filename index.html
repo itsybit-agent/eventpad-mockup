@@ -280,6 +280,19 @@
       flex-wrap: wrap;
       justify-content: center;
     }
+    .slice-link {
+      cursor: pointer;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+    .slice-link:active {
+      opacity: 0.6;
+    }
+    .link-indicator {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
     .slice-element-icon {
       width: 28px;
       height: 28px;
@@ -1149,6 +1162,29 @@
       showSheet('sliceNameSheet');
     }
 
+    function jumpToElementSlice(elementId) {
+      const state = projectState();
+      
+      // Find non-AU slice containing this element (the source slice)
+      const sourceSlice = Object.values(state.slices).find(s => 
+        s.type !== 'AU' && s.elements.includes(elementId)
+      );
+      
+      if (sourceSlice) {
+        // Scroll to the slice card
+        const sliceCard = document.querySelector(`[data-slice-id="${sourceSlice.id}"]`);
+        if (sliceCard) {
+          sliceCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          sliceCard.style.outline = '2px solid var(--accent)';
+          setTimeout(() => sliceCard.style.outline = '', 1500);
+        } else {
+          showToast(`Source: ${sourceSlice.name || sourceSlice.type} slice`);
+        }
+      } else {
+        showToast('Element not in a slice');
+      }
+    }
+
     let pendingPicker = null;
 
     function showPicker(targetType, relation, sliceType) {
@@ -1375,23 +1411,25 @@
           `;
         }
         
-        // Command + ReadModels on same row
+        // Command + ReadModels on same row (clickable to jump to source slice)
         if (command || readModels.length > 0) {
           if (processor) html += '<div class="slice-arrow">↓</div>';
           html += '<div class="slice-row">';
           if (command) {
             html += `
-              <div class="slice-element">
+              <div class="slice-element slice-link" onclick="jumpToElementSlice('${command.id}')" title="Tap to see source slice">
                 <div class="slice-element-icon" style="background: var(--command); color: #fff;">🟦</div>
                 <span>${command.name}</span>
+                <span class="link-indicator">↗</span>
               </div>
             `;
           }
           readModels.forEach(rm => {
             html += `
-              <div class="slice-element">
+              <div class="slice-element slice-link" onclick="jumpToElementSlice('${rm.id}')" title="Tap to see source slice">
                 <div class="slice-element-icon" style="background: var(--readmodel); color: #000;">🟩</div>
                 <span>${rm.name}</span>
+                <span class="link-indicator">↗</span>
               </div>
             `;
           });
@@ -1455,7 +1493,7 @@
         const rmEl = sliceElements.find(e => e.type === 'readModel');
         
         return `
-          <div class="slice-card">
+          <div class="slice-card" data-slice-id="${slice.id}">
             <div class="slice-header" onclick="${!slice.name ? `promptSliceName('${slice.id}')` : ''}" style="${!slice.name ? 'cursor: pointer;' : ''}"
               <span class="slice-name">${slice.name || '(tap to name)'}</span>
               <span class="slice-type">${slice.type}${slice.complete === false ? ' ⏳' : ''}</span>
