@@ -72,6 +72,21 @@ Then:
   SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"], complete: true }
 ```
 
+✅ "Screen connected before slice → included when slice inferred"
+```
+Given: 
+  ElementCreated { elementId: "c1", elementType: "command", name: "Poo" }
+  ElementCreated { elementId: "scr1", elementType: "screen", name: "but" }
+  Connected { fromId: "c1", toId: "scr1", relation: "input" }
+When: 
+  Connect { fromId: "c1", toId: "e1", relation: "produces" }
+  + ElementCreated { elementId: "e1", elementType: "event", name: "poooooood" }
+Then:
+  Connected { fromId: "c1", toId: "e1", relation: "produces" }
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["scr1", "c1", "e1"], complete: true }
+```
+**Rule:** When inferring slice, include pre-connected screens (input) at start, readModels at end.
+
 ✅ "Event asks what produces it → infers SC slice"
 ```
 Given: ElementCreated { elementId: "e1", elementType: "event", name: "Created" }

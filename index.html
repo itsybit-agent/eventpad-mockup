@@ -818,15 +818,9 @@
 
       // 3. Check if selected element is already in a slice
       const state = projectState();
-      console.log('Looking for element in slice:', selectedElement.id);
-      console.log('All slices:', state.slices);
-      
-      const existingSlice = Object.values(state.slices).find(s => {
-        console.log('Checking slice:', s.id, 'elements:', s.elements);
-        return s.elements.includes(selectedElement.id);
-      });
-      
-      console.log('Found existingSlice:', existingSlice);
+      const existingSlice = Object.values(state.slices).find(s => 
+        s.elements.includes(selectedElement.id)
+      );
       
       if (existingSlice) {
         // Add new element to existing slice
@@ -856,18 +850,35 @@
         // 4. Infer new slice if pattern detected
         const sliceId = 'slice_' + Date.now();
         let elements = [];
+        let commandId = null;
+        let eventId = null;
         
         if (sliceType === 'SC') {
           // SC: command -> event (order matters for display)
           if (relation === 'producer') {
             // Event asked "what produces this?" → new command, then event
-            elements = [newElementId, selectedElement.id];
+            commandId = newElementId;
+            eventId = selectedElement.id;
           } else if (relation === 'produces') {
             // Command asked "what does this produce?" → command, then new event
-            elements = [selectedElement.id, newElementId];
-          } else {
-            elements = [newElementId, selectedElement.id];
+            commandId = selectedElement.id;
+            eventId = newElementId;
           }
+          
+          // Check for pre-connected elements (screens at start, readModels at end)
+          const inputScreens = state.connections
+            .filter(c => c.from === commandId && c.relation === 'input')
+            .map(c => c.to)
+            .filter(id => state.elements[id]?.type === 'screen');
+          
+          const outputReadModels = state.connections
+            .filter(c => c.from === eventId && c.relation === 'consumer')
+            .map(c => c.to)
+            .filter(id => state.elements[id]?.type === 'readModel');
+          
+          // Build elements array: [screens..., command, event, readModels...]
+          elements = [...inputScreens, commandId, eventId, ...outputReadModels];
+          
         } else if (sliceType === 'SV') {
           elements = [selectedElement.id, newElementId]; // event -> readModel
         } else if (sliceType === 'AU') {
