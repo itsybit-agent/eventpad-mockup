@@ -222,17 +222,38 @@ Then:
 
 ## 📖 Slice Naming
 
-### SC: Name Slice
-⏹️ SliceNamePrompt { sliceId, suggestedName? }
-🟦 NameSlice { sliceId, name }
+### SC: Rename Slice
+⏹️ SliceHeader { sliceId, currentName }
+🟦 RenameSlice { sliceId, name }
 🟧 SliceNamed { sliceId, name }
-🟩 Feed *(slice card with name)*
+🟩 Feed { slice.name updated }
+⏹️ SliceCard { shows new name }
 
-✅ "Name inferred slice"
+✅ "Tap slice header → rename slice"
+```
+Given: 
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
+  SliceNamed { sliceId: "s1", name: "Create Order" }
+When: RenameSlice { sliceId: "s1", name: "Place Order" }
+Then: SliceNamed { sliceId: "s1", name: "Place Order" }
+```
+
+✅ "Name new (unnamed) slice"
 ```
 Given: SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
-When: NameSlice { sliceId: "s1", name: "Create Order" }
+When: RenameSlice { sliceId: "s1", name: "Create Order" }
 Then: SliceNamed { sliceId: "s1", name: "Create Order" }
+```
+
+**Slice visualization:**
+```
+┌─────────────────────────────┐
+│ Rename Slice             SC │
+├─────────────────────────────┤
+│ ⏹️ SliceHeader              │
+│ 🟦 RenameSlice              │
+│ 🟧 SliceNamed               │
+└─────────────────────────────┘
 ```
 
 ---
