@@ -26,6 +26,43 @@ When: CreateElement { elementId: "c1", elementType: "command", name: "CreateOrde
 Then: ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
 ```
 
+### SV: View Feed
+🟧 ElementCreated, SliceNamed, SliceElementAdded
+🟩 Feed { elements: Element[], slices: Slice[] }
+⏹️ Feed
+
+✅ "Feed shows created element"
+```
+Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+Then: Feed { elements: [{ id: "e1", type: "event", name: "OrderCreated" }] }
+```
+
+✅ "Feed shows multiple elements"
+```
+Given: 
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+Then: Feed { 
+  elements: [
+    { id: "c1", type: "command", name: "CreateOrder" },
+    { id: "e1", type: "event", name: "OrderCreated" }
+  ] 
+}
+```
+
+✅ "Feed shows named slice"
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
+  SliceNamed { sliceId: "s1", name: "Create Order" }
+Then: Feed {
+  slices: [{ id: "s1", name: "Create Order", type: "SC", elements: ["c1", "e1"] }],
+  elements: []  // c1 and e1 now in slice, not loose
+}
+```
+
 ---
 
 ## 📖 Connections
