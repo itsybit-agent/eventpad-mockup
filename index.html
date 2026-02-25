@@ -735,7 +735,7 @@
       ],
       command: [
         { label: 'What screen triggers this?', target: 'screen', relation: 'input' },
-        { label: 'What events does this produce?', target: 'event', relation: 'produces' }
+        { label: 'What events does this produce?', target: 'event', relation: 'produces', sliceType: 'SC' }
       ],
       readModel: [
         { label: 'What events update this?', target: 'event', relation: 'updatedBy' },
@@ -800,7 +800,16 @@
         let elements = [];
         
         if (sliceType === 'SC') {
-          elements = [newElementId, selectedElement.id]; // command -> event
+          // SC: command -> event (order matters for display)
+          if (relation === 'producer') {
+            // Event asked "what produces this?" → new command, then event
+            elements = [newElementId, selectedElement.id];
+          } else if (relation === 'produces') {
+            // Command asked "what does this produce?" → command, then new event
+            elements = [selectedElement.id, newElementId];
+          } else {
+            elements = [newElementId, selectedElement.id];
+          }
         } else if (sliceType === 'SV') {
           elements = [selectedElement.id, newElementId]; // event -> readModel
         } else if (sliceType === 'AU') {
