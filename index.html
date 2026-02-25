@@ -1155,9 +1155,9 @@
       hideAllSheets();
     }
 
-    function promptSliceName(sliceId) {
+    function promptSliceName(sliceId, currentName) {
       pendingSliceId = sliceId;
-      document.getElementById('sliceNameInput').value = '';
+      document.getElementById('sliceNameInput').value = currentName || '';
       document.getElementById('sliceNameInput').placeholder = 'Enter slice name';
       showSheet('sliceNameSheet');
     }
@@ -1494,7 +1494,7 @@
         
         return `
           <div class="slice-card" data-slice-id="${slice.id}">
-            <div class="slice-header" onclick="${!slice.name ? `promptSliceName('${slice.id}')` : ''}" style="${!slice.name ? 'cursor: pointer;' : ''}"
+            <div class="slice-header" onclick="promptSliceName('${slice.id}', '${slice.name || ''}')" style="cursor: pointer;"
               <span class="slice-name">${slice.name || '(tap to name)'}</span>
               <span class="slice-type">${slice.type}${slice.complete === false ? ' ⏳' : ''}</span>
             </div>
