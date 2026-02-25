@@ -67,26 +67,65 @@ Then: Feed {
 
 ## 📖 Connections
 
-### SC: Connect Elements
-⏹️ ElementCard { selectedElement }
-⏹️ ActionSheet { action, targetType }
-🟦 Connect { fromId, toId, relation }
+### SC: Connect Command to Event
+⏹️ ElementCard { commandId }
+⏹️ ActionSheet { "What does this produce?" }
+🟦 Connect { fromId: commandId, toId: eventId, relation: "produces" }
 🟧 Connected { fromId, toId, relation }
-🟩 ElementCard *(shows connection)*
 
-**Valid connections:**
-| From | To | Relation | Creates Slice? |
-|------|----|----------|----------------|
-| 🟦 Command | 🟧 Event | produces | SC |
-| 🟧 Event | 🟦 Command | producer | SC |
-| 🟧 Event | 🟩 ReadModel | consumer | SV |
-| 🟩 ReadModel | 🟧 Event | updatedBy | SV |
-| 🟧 Event | ⚙️ Processor | trigger | AU |
-| ⚙️ Processor | 🟦 Command | invokes | AU (completes) |
-| 🟦 Command | ⏹️ Screen | input | - |
-| ⏹️ Screen | 🟦 Command | triggers | - |
-| 🟩 ReadModel | ⏹️ Screen | display | - |
-| ⏹️ Screen | 🟩 ReadModel | displays | - |
+✅ "Command produces event"
+```
+Given: 
+  ElementCreated { elementId: "c1", elementType: "command", name: "AddTodo" }
+When: Connect { fromId: "c1", toId: "e1", relation: "produces" }
+      + ElementCreated { elementId: "e1", elementType: "event", name: "TodoAdded" }
+Then: Connected { fromId: "c1", toId: "e1", relation: "produces" }
+```
+
+### SC: Connect Event to ReadModel
+⏹️ ElementCard { eventId }
+⏹️ ActionSheet { "What does this update?" }
+🟦 Connect { fromId: eventId, toId: readModelId, relation: "consumer" }
+🟧 Connected { fromId, toId, relation }
+
+✅ "Event updates read model"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "TodoAdded" }
+When: Connect { fromId: "e1", toId: "rm1", relation: "consumer" }
+      + ElementCreated { elementId: "rm1", elementType: "readModel", name: "TodoList" }
+Then: Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+```
+
+### SC: Connect Screen to Command
+⏹️ ElementCard { commandId }
+⏹️ ActionSheet { "What screen triggers this?" }
+🟦 Connect { fromId: commandId, toId: screenId, relation: "input" }
+🟧 Connected { fromId, toId, relation }
+
+✅ "Screen triggers command"
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "AddTodo" }
+When: Connect { fromId: "c1", toId: "scr1", relation: "input" }
+      + ElementCreated { elementId: "scr1", elementType: "screen", name: "AddTodoForm" }
+Then: Connected { fromId: "c1", toId: "scr1", relation: "input" }
+```
+
+### SC: Connect ReadModel to Screen
+⏹️ ElementCard { readModelId }
+⏹️ ActionSheet { "What screen displays this?" }
+🟦 Connect { fromId: readModelId, toId: screenId, relation: "display" }
+🟧 Connected { fromId, toId, relation }
+
+✅ "Screen displays read model"
+```
+Given:
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "TodoList" }
+When: Connect { fromId: "rm1", toId: "scr1", relation: "display" }
+      + ElementCreated { elementId: "scr1", elementType: "screen", name: "Dashboard" }
+Then: Connected { fromId: "rm1", toId: "scr1", relation: "display" }
+```
 
 ---
 
@@ -497,3 +536,114 @@ Then:
 | ⚙️ | Processor |
 | ✅ | Success scenario |
 | ❌ | Rejection scenario |
+
+---
+
+## 📋 Example: Todo List with Automation
+
+### Elements Created
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "AddTodo" }
+  ElementCreated { elementId: "e1", elementType: "event", name: "TodoAdded" }
+  ElementCreated { elementId: "c2", elementType: "command", name: "CompleteTodo" }
+  ElementCreated { elementId: "e2", elementType: "event", name: "TodoCompleted" }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "TodoList" }
+  ElementCreated { elementId: "scr1", elementType: "screen", name: "AddTodoForm" }
+  ElementCreated { elementId: "scr2", elementType: "screen", name: "TodoDashboard" }
+  ElementCreated { elementId: "p1", elementType: "processor", name: "SendReminder" }
+  ElementCreated { elementId: "c3", elementType: "command", name: "SendEmail" }
+```
+
+### SC Slice 1: Add Todo
+```
+Given:
+  Connected { fromId: "scr1", toId: "c1", relation: "triggers" }
+  Connected { fromId: "c1", toId: "e1", relation: "produces" }
+Then:
+  SliceInferred { sliceId: "sc1", sliceType: "SC", elements: ["scr1", "c1", "e1"] }
+  SliceNamed { sliceId: "sc1", name: "Add Todo" }
+
+Result:
+┌─────────────────────────┐
+│ Add Todo             SC │
+├─────────────────────────┤
+│ ⏹️ AddTodoForm          │
+│ 🟦 AddTodo              │
+│ 🟧 TodoAdded            │
+└─────────────────────────┘
+```
+
+### SC Slice 2: Complete Todo
+```
+Given:
+  Connected { fromId: "c2", toId: "e2", relation: "produces" }
+Then:
+  SliceInferred { sliceId: "sc2", sliceType: "SC", elements: ["c2", "e2"] }
+  SliceNamed { sliceId: "sc2", name: "Complete Todo" }
+
+Result:
+┌─────────────────────────┐
+│ Complete Todo        SC │
+├─────────────────────────┤
+│ 🟦 CompleteTodo         │
+│ 🟧 TodoCompleted        │
+└─────────────────────────┘
+```
+
+### SV Slice: Todo List View
+```
+Given:
+  Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+  Connected { fromId: "e2", toId: "rm1", relation: "consumer" }
+  Connected { fromId: "rm1", toId: "scr2", relation: "display" }
+Then:
+  SliceInferred { sliceId: "sv1", sliceType: "SV", elements: ["scr2", "rm1", "e1", "e2"] }
+  SliceNamed { sliceId: "sv1", name: "Todo List View" }
+
+Result:
+┌─────────────────────────┐
+│ Todo List View       SV │
+├─────────────────────────┤
+│ ⏹️ TodoDashboard        │
+│ 🟩 TodoList             │
+│ 🟧 TodoAdded            │
+│ 🟧 TodoCompleted        │
+└─────────────────────────┘
+```
+
+### AU Slice: Reminder Automation
+```
+Given:
+  # Processor picks trigger from SV slice
+  TriggerSet { processorId: "p1", eventId: "e1" }  # from "Todo List View" SV
+Then:
+  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["p1", "rm1", "e1"], complete: false }
+  # rm1 (TodoList) auto-included from same SV
+
+Given:
+  # Processor picks command
+  AutomationCommandSet { sliceId: "au1", commandId: "c3" }
+Then:
+  SliceElementAdded { sliceId: "au1", elementId: "c3" }
+  SliceCompleted { sliceId: "au1" }
+  SliceNamed { sliceId: "au1", name: "Reminder Automation" }
+
+Result:
+┌─────────────────────────┐
+│ Reminder Automation  AU │
+├─────────────────────────┤
+│ ⚙️ SendReminder         │
+│ 🟦 SendEmail            │
+│ 🟩 TodoList             │
+│ 🟧 TodoAdded            │
+└─────────────────────────┘
+```
+
+### Complete Model Summary
+```
+SC: Add Todo          [⏹️ AddTodoForm → 🟦 AddTodo → 🟧 TodoAdded]
+SC: Complete Todo     [🟦 CompleteTodo → 🟧 TodoCompleted]
+SV: Todo List View    [⏹️ TodoDashboard ← 🟩 TodoList ← 🟧 TodoAdded, 🟧 TodoCompleted]
+AU: Reminder          [⚙️ SendReminder → 🟦 SendEmail | context: 🟩 TodoList | trigger: 🟧 TodoAdded]
+```
