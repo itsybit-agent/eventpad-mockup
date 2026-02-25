@@ -760,7 +760,7 @@
         { label: 'What events does this produce?', target: 'event', relation: 'produces', sliceType: 'SC' }
       ],
       readModel: [
-        { label: 'What events update this?', target: 'event', relation: 'updatedBy' },
+        { label: 'What events update this?', target: 'event', relation: 'updatedBy', sliceType: 'SV' },
         { label: 'What screen displays this?', target: 'screen', relation: 'display' }
       ],
       processor: [
@@ -880,7 +880,35 @@
           elements = [...inputScreens, commandId, eventId, ...outputReadModels];
           
         } else if (sliceType === 'SV') {
-          elements = [selectedElement.id, newElementId]; // event -> readModel
+          // SV: events -> readModel (events at start, readModel at end)
+          let eventIds = [];
+          let readModelId = null;
+          
+          if (relation === 'consumer') {
+            // Event asked "what does this update?" → event, then new readModel
+            eventIds = [selectedElement.id];
+            readModelId = newElementId;
+          } else if (relation === 'updatedBy') {
+            // ReadModel asked "what events update this?" → new event, then readModel
+            eventIds = [newElementId];
+            readModelId = selectedElement.id;
+          }
+          
+          // Check for pre-connected events (other events that update this readModel)
+          const otherEvents = state.connections
+            .filter(c => c.to === readModelId && (c.relation === 'consumer' || c.relation === 'updatedBy'))
+            .map(c => c.from)
+            .filter(id => state.elements[id]?.type === 'event' && !eventIds.includes(id));
+          
+          // Check for pre-connected display screen
+          const displayScreens = state.connections
+            .filter(c => c.from === readModelId && c.relation === 'display')
+            .map(c => c.to)
+            .filter(id => state.elements[id]?.type === 'screen');
+          
+          // Build elements array: [events..., readModel, screens...]
+          elements = [...otherEvents, ...eventIds, readModelId, ...displayScreens];
+          
         } else if (sliceType === 'AU') {
           elements = [selectedElement.id, newElementId]; // event -> processor
         }

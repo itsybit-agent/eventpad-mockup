@@ -151,6 +151,32 @@ Then:
   SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"], complete: true }
 ```
 
+✅ "Read model asks what updates it → infers SV slice"
+```
+Given: ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
+When: Connect { fromId: "e1", toId: "rm1", relation: "updatedBy" }
+      + ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+Then:
+  Connected { fromId: "e1", toId: "rm1", relation: "updatedBy" }
+  SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"], complete: true }
+```
+
+✅ "Multiple events update same read model"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
+  Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+  SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"] }
+  SliceNamed { sliceId: "s1", name: "Order List View" }
+When: Connect { fromId: "e2", toId: "rm1", relation: "consumer" }
+      + ElementCreated { elementId: "e2", elementType: "event", name: "OrderCanceled" }
+Then:
+  Connected { fromId: "e2", toId: "rm1", relation: "consumer" }
+  SliceElementAdded { sliceId: "s1", elementId: "e2", position: "start" }
+```
+**Result:** SV slice elements = [🟧 OrderCreated, 🟧 OrderCanceled, 🟩 OrderList]
+
 ---
 
 ## 📖 Slice Naming
