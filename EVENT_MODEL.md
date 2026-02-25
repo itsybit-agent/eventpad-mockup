@@ -314,43 +314,74 @@ Then:
 
 ## 📖 Automation Slice
 
-### SC: Start Automation (Event triggers Processor)
-⏹️ EventCard { eventId }
-⏹️ ActionSheet { "What does this trigger?" }
-🟦 CreateProcessor { eventId, processorId*, processorName }
-🟧 ElementCreated { elementId: processorId, elementType: "processor", name }
-🟧 TriggerSet { eventId, processorId }
-🟧 SliceInferred { sliceId*, sliceType: "AU", elements: [eventId, processorId], complete: false }
+**AU Pattern:** Automation reacts to domain events with context from read models.
 
-✅ "Event triggers processor → starts AU slice (incomplete)"
 ```
-Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
-When: Connect { fromId: "e1", toId: "p1", relation: "trigger" }
-      + ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
+🟧 Trigger Event (from existing SV)
+🟩 Primary ReadModel (auto-included from same SV)
+🟩 Additional Context ReadModels (optional, from other SVs)
+⚙️ Processor
+🟦 Command (picked from existing)
+🟧 Output Events (from command's SC slice)
+```
+
+### SC: Create Processor
+⏹️ FAB (+)
+⏹️ ElementTypeSheet { select "Processor" }
+⏹️ NameSheet { enter name }
+🟦 CreateElement { elementId*, elementType: "processor", name }
+🟧 ElementCreated { elementId, elementType: "processor", name }
+
+✅ "Create processor element"
+```
+Given: []
+When: CreateElement { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
+Then: ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
+```
+
+### SC: Set Trigger (from SV slice)
+⏹️ ProcessorCard { processorId }
+⏹️ ActionSheet { "What triggers this?" }
+⏹️ SVEventPicker { events from existing SV slices only }
+🟦 SetTrigger { processorId, eventId, readModelId (from same SV) }
+🟧 TriggerSet { processorId, eventId }
+🟧 SliceInferred { sliceId*, sliceType: "AU", elements: [eventId, readModelId, processorId], complete: false }
+
+✅ "Pick trigger event → auto-includes SV's read model"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
+  SliceInferred { sliceId: "sv1", sliceType: "SV", elements: ["rm1", "e1"] }
+  SliceNamed { sliceId: "sv1", name: "Order List View" }
+  ElementCreated { elementId: "p1", elementType: "processor", name: "NotifyWarehouse" }
+When: SetTrigger { processorId: "p1", eventId: "e1" }
 Then:
-  TriggerSet { eventId: "e1", processorId: "p1" }
-  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["e1", "p1"], complete: false }
+  TriggerSet { processorId: "p1", eventId: "e1" }
+  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1"], complete: false }
 ```
-**Note:** AU slice is incomplete until command is set.
+**Note:** Trigger event must come from an existing SV. ReadModel from same SV is auto-included.
 
-### SC: Add Context ReadModel to Automation
+### SC: Add Additional Context
 ⏹️ ProcessorCard { processorId in AU slice }
-⏹️ ActionSheet { "What context does this need?" }
-⏹️ ReadModelPicker { existing readModels }
-🟦 AddContext { sliceId, readModelId }
+⏹️ ActionSheet { "What additional context?" }
+⏹️ ReadModelPicker { readModels from other SV slices }
+🟦 AddContext { sliceId, readModelIds[] }
 🟧 ContextAdded { sliceId, readModelId }
 🟧 SliceElementAdded { sliceId, elementId: readModelId }
 
-✅ "Add context read model to AU slice"
+✅ "Add additional context read models"
 ```
 Given:
-  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["e1", "p1"], complete: false }
-  ElementCreated { elementId: "rm1", elementType: "readModel", name: "CustomerProfile" }
-When: AddContext { sliceId: "s1", readModelId: "rm1" }
+  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1"], complete: false }
+  ElementCreated { elementId: "rm2", elementType: "readModel", name: "CustomerProfile" }
+  SliceInferred { sliceId: "sv2", sliceType: "SV", elements: ["rm2", "e2"] }
+When: AddContext { sliceId: "au1", readModelId: "rm2" }
 Then:
-  ContextAdded { sliceId: "s1", readModelId: "rm1" }
-  SliceElementAdded { sliceId: "s1", elementId: "rm1" }
+  ContextAdded { sliceId: "au1", readModelId: "rm2" }
+  SliceElementAdded { sliceId: "au1", elementId: "rm2" }
 ```
+**Note:** Additional context comes from OTHER SV slices. Can add multiple.
 
 ### SC: Set Automation Command (pick from existing)
 ⏹️ ProcessorCard { processorId in AU slice }
@@ -364,13 +395,13 @@ Then:
 ✅ "Set command from picker → completes AU slice"
 ```
 Given:
-  SliceInferred { sliceId: "s1", sliceType: "AU", elements: ["e1", "p1"], complete: false }
+  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1"], complete: false }
   ElementCreated { elementId: "c1", elementType: "command", name: "SendNotification" }
-When: SetAutomationCommand { sliceId: "s1", commandId: "c1" }
+When: SetAutomationCommand { sliceId: "au1", commandId: "c1" }
 Then:
-  AutomationCommandSet { sliceId: "s1", commandId: "c1" }
-  SliceElementAdded { sliceId: "s1", elementId: "c1" }
-  SliceCompleted { sliceId: "s1" }
+  AutomationCommandSet { sliceId: "au1", commandId: "c1" }
+  SliceElementAdded { sliceId: "au1", elementId: "c1" }
+  SliceCompleted { sliceId: "au1" }
 ```
 **Note:** Command is PICKED from existing commands, not created inline.
 
