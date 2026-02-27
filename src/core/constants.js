@@ -1,0 +1,96 @@
+// Event Types
+export const EventTypes = {
+  // Element events
+  ElementCreated: 'ElementCreated',
+  ElementDeleted: 'ElementDeleted',
+  PropertyAdded: 'PropertyAdded',
+  PropertyRemoved: 'PropertyRemoved',
+  
+  // Connection events
+  ProducerSet: 'ProducerSet',
+  ConsumerAdded: 'ConsumerAdded',
+  TriggerSet: 'TriggerSet',
+  ProcessorOutputSet: 'ProcessorOutputSet',
+  InputScreenSet: 'InputScreenSet',
+  DisplayScreenSet: 'DisplayScreenSet',
+  
+  // Slice events
+  SliceInferred: 'SliceInferred',
+  SliceNamed: 'SliceNamed',
+  SliceDeleted: 'SliceDeleted',
+  SliceElementAdded: 'SliceElementAdded',
+  SliceElementRemoved: 'SliceElementRemoved',
+  SliceCompleted: 'SliceCompleted',
+  
+  // Scenario events
+  ScenarioAdded: 'ScenarioAdded',
+  GivenSet: 'GivenSet',
+  WhenSet: 'WhenSet',
+  ThenSet: 'ThenSet'
+};
+
+// Element type icons
+export const typeIcons = {
+  event: '🟧',
+  command: '🟦',
+  readModel: '🟩',
+  screen: '⏹️',
+  processor: '⚙️'
+};
+
+// Element type labels
+export const typeLabels = {
+  event: 'Event',
+  command: 'Command',
+  readModel: 'Read Model',
+  screen: 'Screen',
+  processor: 'Processor'
+};
+
+// Element actions by type
+export const elementActions = {
+  event: [
+    { label: 'What produces this?', target: 'command', relation: 'producer', sliceType: 'SC' },
+    { label: 'What does this update?', target: 'readModel', relation: 'consumer', sliceType: 'SV' }
+  ],
+  command: [
+    { label: 'What screen triggers this?', target: 'screen', relation: 'input' },
+    { label: 'What events does this produce?', target: 'event', relation: 'produces', sliceType: 'SC' }
+  ],
+  readModel: [
+    { label: 'What events update this?', target: 'event', relation: 'updatedBy', sliceType: 'SV' },
+    { label: 'What screen displays this?', target: 'screen', relation: 'display' }
+  ],
+  processor: [
+    { label: 'What triggers this?', target: 'event', relation: 'trigger', svPicker: true },
+    { label: 'What additional context?', target: 'readModel', relation: 'context', picker: true },
+    { label: 'What command does this invoke?', target: 'command', relation: 'invokes', picker: true }
+  ],
+  screen: [
+    { label: 'What command does this trigger?', target: 'command', relation: 'triggers' },
+    { label: 'What does this display?', target: 'readModel', relation: 'displays' }
+  ]
+};
+
+// Connection labels
+export const connectionLabels = {
+  producer: 'produces',
+  consumer: 'updates',
+  trigger: 'triggers',
+  invokes: 'invokes',
+  input: 'triggered by',
+  display: 'displayed on',
+  produces: 'produces',
+  updatedBy: 'updated by',
+  triggers: 'triggers',
+  displays: 'displays',
+  context: 'uses context'
+};
+
+export const reverseConnectionLabels = {
+  producer: 'produced by',
+  consumer: 'updated by',
+  trigger: 'triggered by',
+  invokes: 'invoked by',
+  produces: 'produced by'
+};
