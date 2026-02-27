@@ -235,19 +235,29 @@ body {
   padding: 8px 0;
   cursor: pointer;
 }
-.element-rename {
+.element-footer {
   display: none;
   padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  justify-content: space-between;
+}
+.element-card.expanded .element-footer {
+  display: flex;
+}
+.element-rename, .element-delete {
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
-  border-top: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 .element-rename:hover {
   color: var(--accent);
+  background: var(--surface-hover);
 }
-.element-card.expanded .element-rename {
-  display: block;
+.element-delete:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
 }
 
 /* Actions */

@@ -15,6 +15,7 @@ import { promptSliceName, dispatchNameSlice, dismissSlicePrompt, initNameSlice }
 import { undo, clearAll } from './features/undo/command.js';
 import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/panel.js';
 import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
+import { deleteElement } from './features/deleteElement/command.js';
 
 // ===========================================
 // GLOBAL API (for onclick handlers in HTML)
@@ -55,7 +56,10 @@ window.EventPad = {
   openPropertySheet,
   saveProperty,
   deleteProperty,
-  renameElement
+  renameElement,
+  
+  // deleteElement
+  deleteElement
 };
 
 // ===========================================

@@ -132,7 +132,10 @@ function renderElementCard(el, state) {
         `).join('') : '<div class="property" style="font-style: italic;">No properties yet</div>'}
         <div class="add-property" onclick="window.EventPad.openPropertySheet('${el.id}')">+ Add property</div>
       </div>
-      <div class="element-rename" onclick="window.EventPad.renameElement('${el.id}')">✏️ Rename</div>
+      <div class="element-footer">
+        <span class="element-rename" onclick="window.EventPad.renameElement('${el.id}')">✏️ Rename</span>
+        <span class="element-delete" onclick="window.EventPad.deleteElement('${el.id}')">🗑️ Delete</span>
+      </div>
       <div class="element-actions">
         ${actions.map(action => `
           <button class="action-btn" onclick="window.EventPad.showActions('${el.id}', event)">${action.label}</button>
