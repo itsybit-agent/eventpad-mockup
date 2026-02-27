@@ -124,9 +124,15 @@ function renderElementCard(el, state) {
       </div>
       ${connectionsHtml ? `<div class="element-connections">${connectionsHtml}</div>` : ''}
       <div class="element-properties">
-        ${el.properties.length ? el.properties.map(p => `<div class="property">${p.name}</div>`).join('') : '<div class="property" style="font-style: italic;">No properties yet</div>'}
-        <div class="add-property">+ Add property</div>
+        ${el.properties.length ? el.properties.map(p => `
+          <div class="property" onclick="window.EventPad.openPropertySheet('${el.id}', '${p.id}')" style="cursor: pointer;">
+            <span class="property-name">${p.name}</span>
+            <span class="property-type">${p.type || 'string'}</span>
+          </div>
+        `).join('') : '<div class="property" style="font-style: italic;">No properties yet</div>'}
+        <div class="add-property" onclick="window.EventPad.openPropertySheet('${el.id}')">+ Add property</div>
       </div>
+      <div class="element-rename" onclick="window.EventPad.renameElement('${el.id}')">✏️ Rename</div>
       <div class="element-actions">
         ${actions.map(action => `
           <button class="action-btn" onclick="window.EventPad.showActions('${el.id}', event)">${action.label}</button>

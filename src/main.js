@@ -14,6 +14,7 @@ import { showPicker, pickElement, showSVPicker, pickSVTrigger } from './features
 import { promptSliceName, dispatchNameSlice, dismissSlicePrompt, initNameSlice } from './features/nameSlice/sheet.js';
 import { undo, clearAll } from './features/undo/command.js';
 import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/panel.js';
+import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
 
 // ===========================================
 // GLOBAL API (for onclick handlers in HTML)
@@ -48,7 +49,13 @@ window.EventPad = {
   
   // feed
   toggleElement,
-  jumpToElementSlice
+  jumpToElementSlice,
+  
+  // properties
+  openPropertySheet,
+  saveProperty,
+  deleteProperty,
+  renameElement
 };
 
 // ===========================================
@@ -63,6 +70,7 @@ function init() {
   initSheets();
   initCreateElement();
   initNameSlice();
+  initProperties();
   
   // Wire up FAB
   document.getElementById('fab').onclick = openCreateSheet;

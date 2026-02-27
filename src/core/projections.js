@@ -59,6 +59,35 @@ export function projectState() {
           });
         }
         break;
+      
+      case 'PropertyUpdated':
+        if (state.elements[event.data.elementId]) {
+          const props = state.elements[event.data.elementId].properties;
+          const idx = props.findIndex(p => p.id === event.data.propertyId);
+          if (idx >= 0) {
+            props[idx] = {
+              id: event.data.propertyId,
+              name: event.data.name,
+              type: event.data.propertyType
+            };
+          }
+        }
+        break;
+        
+      case EventTypes.PropertyRemoved:
+        if (state.elements[event.data.elementId]) {
+          state.elements[event.data.elementId].properties = 
+            state.elements[event.data.elementId].properties.filter(
+              p => p.id !== event.data.propertyId
+            );
+        }
+        break;
+        
+      case 'ElementRenamed':
+        if (state.elements[event.data.elementId]) {
+          state.elements[event.data.elementId].name = event.data.name;
+        }
+        break;
         
       case EventTypes.ProducerSet:
       case EventTypes.ConsumerAdded:
