@@ -12,6 +12,10 @@ Element-first, slice-inferred event modeling tool.
 |---------|------|--------------------------|
 | Create Element | SC | FAB → CreateElement → ElementCreated |
 | Delete Element | SC | ElementCard → DeleteElement → ElementDeleted |
+| Rename Element | SC | ElementCard → RenameElement → ElementRenamed |
+| Add Property | SC | ElementCard → AddProperty → PropertyAdded |
+| Edit Property | SC | PropertyRow → UpdateProperty → PropertyUpdated |
+| Delete Property | SC | PropertySheet → DeleteProperty → PropertyRemoved |
 | Rename Slice | SC | SliceHeader → RenameSlice → SliceNamed |
 | Connect Elements | SC | ActionSheet → Connect → Connected |
 | Undo | SC | UndoButton → Undo → EventPopped |
@@ -43,6 +47,101 @@ Given: []
 When: CreateElement { elementId: "c1", elementType: "command", name: "CreateOrder" }
 Then: ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
 ```
+
+### SC: Rename Element
+⏹️ ElementCard { elementId, expanded }
+🟦 RenameElement { elementId, name }
+🟧 ElementRenamed { elementId, name }
+🟩 Feed *(element name updated)*
+
+✅ "Rename element"
+```
+Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+When: RenameElement { elementId: "e1", name: "OrderPlaced" }
+Then: ElementRenamed { elementId: "e1", name: "OrderPlaced" }
+```
+
+---
+
+## 📖 Properties
+
+### SC: Add Property
+⏹️ ElementCard { elementId, expanded }
+⏹️ PropertySheet { mode: "add" }
+🟦 AddProperty { elementId, propertyId*, name, propertyType }
+🟧 PropertyAdded { elementId, propertyId, name, propertyType }
+🟩 ElementCard *(property appears in list)*
+
+✅ "Add string property"
+```
+Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+When: AddProperty { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+Then: PropertyAdded { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+```
+
+✅ "Add number property"
+```
+Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+When: AddProperty { elementId: "e1", propertyId: "p2", name: "amount", propertyType: "number" }
+Then: PropertyAdded { elementId: "e1", propertyId: "p2", name: "amount", propertyType: "number" }
+```
+
+**Property types:** string, number, boolean, date, guid, array, object
+
+### SC: Edit Property
+⏹️ PropertyRow { elementId, propertyId }
+⏹️ PropertySheet { mode: "edit", property }
+🟦 UpdateProperty { elementId, propertyId, name, propertyType }
+🟧 PropertyUpdated { elementId, propertyId, name, propertyType }
+🟩 ElementCard *(property updated)*
+
+✅ "Update property name and type"
+```
+Given: 
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  PropertyAdded { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "string" }
+When: UpdateProperty { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+Then: PropertyUpdated { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+```
+
+### SC: Delete Property
+⏹️ PropertySheet { mode: "edit", property }
+⏹️ ConfirmDialog { "Delete this property?" }
+🟦 DeleteProperty { elementId, propertyId }
+🟧 PropertyRemoved { elementId, propertyId }
+🟩 ElementCard *(property removed)*
+
+✅ "Delete property"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  PropertyAdded { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+When: DeleteProperty { elementId: "e1", propertyId: "p1" }
+Then: PropertyRemoved { elementId: "e1", propertyId: "p1" }
+```
+
+### SV: View Element Properties
+🟧 PropertyAdded, PropertyUpdated, PropertyRemoved
+🟩 ElementProperties { elementId, properties: Property[] }
+⏹️ ElementCard *(properties section)*
+
+✅ "Element shows its properties"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  PropertyAdded { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+  PropertyAdded { elementId: "e1", propertyId: "p2", name: "amount", propertyType: "number" }
+Then:
+  ElementProperties { 
+    elementId: "e1", 
+    properties: [
+      { id: "p1", name: "orderId", type: "guid" },
+      { id: "p2", name: "amount", type: "number" }
+    ] 
+  }
+```
+
+---
 
 ### SV: View Feed
 🟧 ElementCreated, SliceNamed, SliceElementAdded
@@ -682,12 +781,16 @@ Then:
 |-------|------|
 | ElementCreated | elementId, elementType, name |
 | ElementDeleted | elementId |
-| PropertyAdded | elementId, propertyId, name, type |
+| ElementRenamed | elementId, name |
+| PropertyAdded | elementId, propertyId, name, propertyType |
+| PropertyUpdated | elementId, propertyId, name, propertyType |
+| PropertyRemoved | elementId, propertyId |
 | Connected | fromId, toId, relation |
 | Disconnected | fromId, toId |
 | SliceInferred | sliceId, sliceType, elements, complete |
 | SliceNamed | sliceId, name |
 | SliceElementAdded | sliceId, elementId, position |
+| SliceElementRemoved | sliceId, elementId |
 | ScenarioAdded | sliceId, scenarioId, name |
 | GivenSet | scenarioId, events |
 | WhenSet | scenarioId, commandId, values |
