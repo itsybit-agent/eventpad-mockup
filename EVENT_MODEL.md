@@ -743,6 +743,30 @@ Two scenario types matching slice types:
 - **SC Scenarios:** Given (events) → When (command) → Then (event | rejection)
 - **SV Scenarios:** Given (events) → Then (read model state)
 
+### Data Flow in Scenarios
+
+Scenarios can include **optional example values** to show data lineage — where each property value comes from:
+
+```
+✅ "Complete order for existing customer"
+Given: 
+  🟧 CustomerRegistered { customerId: "cust-1", name: "Alice" }
+  🟧 OrderCreated { orderId: "ord-1", customerId: "cust-1", amount: 150 }
+When:  
+  🟦 CompleteOrder { orderId: "ord-1" }     ← orderId from OrderCreated
+Then:  
+  🟧 OrderCompleted { 
+    orderId: "ord-1",           ← from When.orderId
+    customerId: "cust-1",       ← from Given.OrderCreated.customerId
+    completedAt: "2026-02-28"   ← generated (new)
+  }
+```
+
+**Property sources:**
+- `←` indicates where a value flows from (Given event, When command, or generated)
+- Properties without source annotation are new/generated values
+- This helps validate that all required data is available in the Given
+
 ---
 
 ## 📖 SC Scenarios (Given/When/Then)
@@ -755,8 +779,8 @@ Two scenario types matching slice types:
 ✅ "Add scenario to SC slice"
 ```
 Given: SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
-When: AddScenario { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
-Then: ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
+When: AddScenario { sliceId: "s1", scenarioId: "scn1", name: "Create order successfully", scenarioType: "SC" }
+Then: ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order successfully", scenarioType: "SC" }
 ```
 
 ### SC: Set Given Events
@@ -764,11 +788,11 @@ Then: ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order", s
 🟦 SetGiven { scenarioId, events: [{elementId, values}] }
 🟧 GivenSet { scenarioId, events }
 
-✅ "Set given events with property values"
+✅ "Set given events with example values"
 ```
 Given: ScenarioAdded { sliceId: "s1", scenarioId: "scn1", scenarioType: "SC" }
 When: SetGiven { scenarioId: "scn1", events: [
-  { elementId: "e1", values: { orderId: "123", amount: 100 } }
+  { elementId: "e1", values: { customerId: "cust-1", name: "Alice" } }
 ]}
 Then: GivenSet { scenarioId: "scn1", events: [...] }
 ```
@@ -778,11 +802,14 @@ Then: GivenSet { scenarioId: "scn1", events: [...] }
 🟦 SetWhen { scenarioId, commandId, values }
 🟧 WhenSet { scenarioId, commandId, values }
 
-✅ "Set when command with values"
+✅ "Set when command with example values"
 ```
 Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SC" }
-When: SetWhen { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } }
-Then: WhenSet { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } }
+When: SetWhen { scenarioId: "scn1", commandId: "c1", values: { 
+  customerId: "cust-1",    ← reference to Given.CustomerRegistered.customerId
+  amount: 150              ← new input value
+} }
+Then: WhenSet { scenarioId: "scn1", commandId: "c1", values: {...} }
 ```
 
 ### SC: Set Then Event (success)
@@ -790,12 +817,19 @@ Then: WhenSet { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } 
 🟦 SetThenEvent { scenarioId, eventId, values }
 🟧 ThenEventSet { scenarioId, eventId, values }
 
-✅ "Expect event outcome"
+✅ "Expect event outcome with data lineage"
 ```
 Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SC" }
-When: SetThenEvent { scenarioId: "scn1", eventId: "e1", values: { orderId: "123" } }
-Then: ThenEventSet { scenarioId: "scn1", eventId: "e1", values: { orderId: "123" } }
+When: SetThenEvent { scenarioId: "scn1", eventId: "e1", values: { 
+  orderId: "*",              ← generated (new guid)
+  customerId: "cust-1",      ← from When.CreateOrder.customerId
+  amount: 150,               ← from When.CreateOrder.amount
+  createdAt: "*"             ← generated (timestamp)
+} }
+Then: ThenEventSet { scenarioId: "scn1", eventId: "e1", values: {...} }
 ```
+
+**Note:** `"*"` indicates a generated/wildcard value that will be produced by the system.
 
 ### SC: Set Then Rejection (failure)
 ⏹️ ScenarioEditor { scenarioId, THEN section }
@@ -840,17 +874,38 @@ Then:
   }
 ```
 
-**SC Scenario display:**
+**SC Scenario display (with data lineage):**
 ```
-✅ "Create order successfully"
-Given: 🟧 CustomerRegistered { customerId: "c1" }
-When:  🟦 CreateOrder { customerId: "c1", amount: 100 }
-Then:  🟧 OrderCreated { orderId: "o1", amount: 100 }
+✅ "Create order for existing customer"
+Given: 
+  🟧 CustomerRegistered { customerId: "cust-1", name: "Alice", tier: "gold" }
+When:  
+  🟦 CreateOrder { 
+    customerId: "cust-1",     ← Given.CustomerRegistered.customerId
+    amount: 250 
+  }
+Then:  
+  🟧 OrderCreated { 
+    orderId: "*",             ← generated
+    customerId: "cust-1",     ← When.CreateOrder.customerId
+    amount: 250,              ← When.CreateOrder.amount
+    discount: 25,             ← calculated (gold tier = 10%)
+    createdAt: "*"            ← generated
+  }
 
 ❌ "Reject order for unknown customer"
 Given: []
-When:  🟦 CreateOrder { customerId: "unknown", amount: 100 }
+When:  🟦 CreateOrder { customerId: "unknown-1", amount: 100 }
 Then:  Rejected: "Customer not found"
+
+❌ "Reject order exceeding credit limit"
+Given: 
+  🟧 CustomerRegistered { customerId: "cust-2", creditLimit: 500 }
+  🟧 OrderCreated { customerId: "cust-2", amount: 400 }
+When:  
+  🟦 CreateOrder { customerId: "cust-2", amount: 200 }
+Then:  
+  Rejected: "Credit limit exceeded (current: 400, requested: 200, limit: 500)"
 ```
 
 ---
@@ -908,18 +963,38 @@ Then:
   }
 ```
 
-**SV Scenario display:**
+**SV Scenario display (with data lineage):**
 ```
-✅ "Order list shows orders"
+✅ "Order list aggregates multiple orders"
 Given: 
-  🟧 OrderCreated { orderId: "o1", amount: 100 }
-  🟧 OrderCreated { orderId: "o2", amount: 200 }
+  🟧 OrderCreated { orderId: "ord-1", customerId: "cust-1", amount: 100 }
+  🟧 OrderCreated { orderId: "ord-2", customerId: "cust-1", amount: 200 }
+  🟧 OrderCreated { orderId: "ord-3", customerId: "cust-2", amount: 150 }
 Then:  
-  🟩 OrderList { count: 2, totalAmount: 300 }
+  🟩 OrderList { 
+    count: 3,                           ← count of Given events
+    totalAmount: 450,                   ← sum of Given.*.amount
+    orders: [
+      { orderId: "ord-1", amount: 100 },  ← from Given[0]
+      { orderId: "ord-2", amount: 200 },  ← from Given[1]
+      { orderId: "ord-3", amount: 150 }   ← from Given[2]
+    ]
+  }
+
+✅ "Order list filters by customer"
+Given: 
+  🟧 OrderCreated { orderId: "ord-1", customerId: "cust-1", amount: 100 }
+  🟧 OrderCreated { orderId: "ord-2", customerId: "cust-2", amount: 200 }
+Then:  
+  🟩 CustomerOrders { 
+    customerId: "cust-1",               ← filter parameter
+    count: 1,                           ← filtered count
+    orders: [{ orderId: "ord-1" }]      ← only cust-1's orders
+  }
 
 ✅ "Empty order list"
 Given: []
-Then:  🟩 OrderList { count: 0, totalAmount: 0 }
+Then:  🟩 OrderList { count: 0, totalAmount: 0, orders: [] }
 ```
 
 ---
