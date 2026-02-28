@@ -18,6 +18,7 @@ Element-first, slice-inferred event modeling tool.
 | Delete Property | SC | PropertySheet → DeleteProperty → PropertyRemoved |
 | Rename Slice | SC | SliceHeader → RenameSlice → SliceNamed |
 | Connect Elements | SC | ActionSheet → Connect → Connected |
+| Pick Source Events | SC | ReadModel → MultiPicker → SV Slice |
 | Undo | SC | UndoButton → Undo → EventPopped |
 | Clear All | SC | ClearButton → ClearAll → AllCleared |
 | Copy Event Log | SC | EventLog → CopyEvents → EventsCopied |
@@ -334,6 +335,48 @@ Then:
 **Result:** SV slice elements = [⏹️ Dashboard, 🟩 OrderList, 🟧 OrderCreated, 🟧 OrderCanceled]
 
 **SV slice order:** Screen at top (what user sees), ReadModel, then events (what updates it)
+
+### SC: Pick Source Events (Multi-Select)
+⏹️ ElementCard { elementId, type: "readModel" }
+⏹️ ActionSheet { "Pick source events" }
+⏹️ MultiPickerSheet { events[], selectedEvents: Set }
+🟦 CreateSVSlice { readModelId, eventIds[] }
+🟧 ConsumerAdded[] { fromId: eventId, toId: readModelId, relation: "consumer" }
+🟧 SliceInferred { sliceId, sliceType: "SV", elements: [...eventIds, readModelId], complete: true }
+🟩 Feed { new SV slice appears }
+⏹️ SliceNameSheet { }
+
+✅ "Pick multiple existing events for read model"
+```
+Given: 
+  ElementCreated { elementId: "e1", elementType: "event", name: "MistakeLogged" }
+  ElementCreated { elementId: "e2", elementType: "event", name: "SuccessLogged" }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "Learnings" }
+When: CreateSVSlice { readModelId: "rm1", eventIds: ["e1", "e2"] }
+Then:
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
+  ConsumerAdded { fromId: "e2", toId: "rm1", relation: "consumer" }
+  SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "e2", "rm1"], complete: true }
+```
+
+✅ "Pick single event for read model"
+```
+Given: 
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
+When: CreateSVSlice { readModelId: "rm1", eventIds: ["e1"] }
+Then:
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
+  SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"], complete: true }
+```
+
+**Multi-picker UI flow:**
+1. Tap Read Model → "Pick source events"
+2. Multi-select sheet shows all existing events
+3. Tap events to toggle selection (✓ checkmark)
+4. Button shows count: "Create SV Slice (2 events)"
+5. Creates connections + SV slice
+6. Prompts for slice name
 
 ---
 
