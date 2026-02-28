@@ -861,3 +861,32 @@ body {
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* Inline properties in slice elements */
+.slice-element-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slice-element-name {
+  font-weight: 500;
+}
+
+.slice-element-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.prop-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-family: monospace;
+}

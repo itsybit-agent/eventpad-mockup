@@ -11,6 +11,14 @@ import { copyEvent } from '../features/eventLog/panel.js';
 // Scenarios are handled via window.EventPad.addScenario / editScenario
 
 // Render slice elements based on slice type
+// Render properties inline
+function renderInlineProperties(props) {
+  if (!props || props.length === 0) return '';
+  return `<div class="slice-element-props">${props.map(p => 
+    `<span class="prop-badge">${p.name}: ${p.type}</span>`
+  ).join('')}</div>`;
+}
+
 function renderSliceElements(elements, sliceType, state) {
   if (sliceType === 'AU') {
     return renderAUSlice(elements, state);
@@ -21,7 +29,10 @@ function renderSliceElements(elements, sliceType, state) {
     ${i > 0 ? '<div class="slice-arrow">↓</div>' : ''}
     <div class="slice-element slice-element-tappable" onclick="window.EventPad.openElementMenu('${el.id}')">
       <div class="slice-element-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
-      <span>${el.name}</span>
+      <div class="slice-element-content">
+        <span class="slice-element-name">${el.name}</span>
+        ${renderInlineProperties(el.properties)}
+      </div>
     </div>
   `).join('');
 }
