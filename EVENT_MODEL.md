@@ -1001,8 +1001,67 @@ Then:  🟩 OrderList { count: 0, totalAmount: 0, orders: [] }
 
 ### SV: View Scenarios
 🟧 ScenarioAdded, GivenSet, WhenSet, ThenEventSet, ThenRejectionSet, ThenReadModelSet
-🟩 SliceScenarios { sliceId, scenarios: Scenario[] }
-⏹️ SliceCard *(scenario count + preview)*
+🟩 ScenarioCard { scenarioId, name, type, given[], when?, then }
+⏹️ SliceCard *(scenario section with cards)*
+
+**ScenarioCard Read Model:**
+```typescript
+ScenarioCard {
+  scenarioId: string
+  name: string
+  type: "SC" | "SV"
+  given: Array<{
+    elementId: string
+    elementName: string
+    values?: Record<string, any>  // optional example values
+  }>
+  when?: {
+    commandId: string
+    commandName: string
+    values?: Record<string, any>
+  }
+  then: 
+    | { type: "event", eventId: string, eventName: string, values?: Record<string, any> }
+    | { type: "rejection", reason: string }
+    | { type: "readModel", readModelId: string, readModelName: string, values?: Record<string, any> }
+}
+```
+
+**Display format (with optional values):**
+```
+┌─────────────────────────────────────────────────────────┐
+│ Create order for gold customer                        × │
+│                                                         │
+│ Given  CustomerRegistered { customerId: "cust-1",       │
+│                             tier: "gold" }              │
+│ When   CreateOrder { customerId: "cust-1",              │
+│                      amount: 250 }                      │
+│ Then   OrderCreated { orderId: "*",                     │
+│                       discount: 25 }                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Display format (without values):**
+```
+┌─────────────────────────────────────────────────────────┐
+│ Create order successfully                             × │
+│                                                         │
+│ Given  CustomerRegistered                               │
+│ When   CreateOrder                                      │
+│ Then   OrderCreated                                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Rejection display:**
+```
+┌─────────────────────────────────────────────────────────┐
+│ Reject unknown customer                               × │
+│                                                         │
+│ Given  (none)                                           │
+│ When   CreateOrder { customerId: "unknown" }            │
+│ Then   Rejected: "Customer not found"                   │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
