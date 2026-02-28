@@ -265,6 +265,81 @@ Then: Feed { elements: [], slices: [] }
 
 ---
 
+### SV: Available Elements
+🟧 ElementCreated, ElementDeleted, Connected
+🟩 AvailableElements { elementType: string, elements: Element[] }
+⏹️ ConnectionPicker
+
+Shows unconnected elements of a specific type. Used when connecting elements to filter valid targets.
+
+**AvailableElements Read Model:**
+```typescript
+AvailableElements {
+  elementType: "command" | "event" | "readModel" | "screen" | "processor"
+  elements: Array<{
+    id: string
+    name: string
+    hasConnections: boolean  // true if element has any connections
+  }>
+}
+```
+
+**Filter logic:**
+- Given an element type, show all elements of that type
+- Optionally filter out elements that already have connections of a specific relation
+
+✅ "Show available events (none connected yet)"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "e2", elementType: "event", name: "OrderShipped" }
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+Then: AvailableElements { 
+  elementType: "event", 
+  elements: [
+    { id: "e1", name: "OrderCreated", hasConnections: false },
+    { id: "e2", name: "OrderShipped", hasConnections: false }
+  ]
+}
+```
+
+✅ "Filter out already connected events"
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "e2", elementType: "event", name: "OrderShipped" }
+  Connected { fromId: "c1", toId: "e1", relation: "emits" }
+Then: AvailableElements { 
+  elementType: "event", 
+  elements: [
+    { id: "e1", name: "OrderCreated", hasConnections: true },
+    { id: "e2", name: "OrderShipped", hasConnections: false }
+  ]
+}
+```
+
+✅ "Empty when no elements of type exist"
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+Then: AvailableElements { elementType: "event", elements: [] }
+```
+
+✅ "Deleted elements not shown"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "e2", elementType: "event", name: "OrderShipped" }
+  ElementDeleted { elementId: "e1" }
+Then: AvailableElements { 
+  elementType: "event", 
+  elements: [{ id: "e2", name: "OrderShipped", hasConnections: false }]
+}
+```
+
+---
+
 ### SV: View Slice (with element details)
 🟧 SliceInferred, SliceNamed, SliceElementAdded, ElementCreated, PropertyAdded, PropertyUpdated, PropertyRemoved
 🟩 SliceDetail { sliceId, name, type, elements: ElementWithProperties[] }
