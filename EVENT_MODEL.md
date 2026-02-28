@@ -1004,84 +1004,48 @@ Then:  🟩 OrderList { count: 0, totalAmount: 0, orders: [] }
 🟩 ScenarioCard { scenarioId, name, type, given[], when?, then }
 ⏹️ ScenarioCard *(in slice scenario section)*
 
-**ScenarioCard Read Model:**
+**ScenarioCard Read Model (mobile - element level):**
 ```typescript
 ScenarioCard {
   scenarioId: string
   name: string
   type: "SC" | "SV"
-  given: Array<{
-    elementId: string
-    elementName: string
-    propertyValues: Array<{ name: string, value: any }>
-  }>
-  when?: {
-    commandId: string
-    commandName: string
-    propertyValues: Array<{ name: string, value: any }>
-  }
+  given: Array<{ elementId: string, elementName: string }>
+  when?: { commandId: string, commandName: string }
   then: 
-    | { type: "event", eventId: string, eventName: string, propertyValues: Array<{ name, value }> }
+    | { type: "event", eventId: string, eventName: string }
     | { type: "rejection", reason: string }
-    | { type: "readModel", readModelId: string, readModelName: string, propertyValues: Array<{ name, value }> }
+    | { type: "readModel", readModelId: string, readModelName: string }
 }
 ```
 
-**Display rules:**
-1. If **no values** specified → show element name only
-2. If **values** specified → show element name + `{ prop: value, ... }`
-3. Then values should **match** Given/When values to show data flow
-
-**Example: SC scenario with values (shows data flow)**
+**Display (element names only):**
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Create order for gold customer                        × │
-│                                                         │
-│ Given  CustomerRegistered { customerId: "cust-1",       │
-│          tier: "gold" }                                 │
-│ When   CreateOrder { customerId: "cust-1",              │
-│          amount: 250 }                                  │
-│ Then   OrderCreated { customerId: "cust-1",             │
-│          amount: 250, discount: 25 }                    │
-└─────────────────────────────────────────────────────────┘
-```
-↑ `customerId` flows from Given → When → Then
-↑ `amount` flows from When → Then  
-↑ `discount` is calculated (new value)
-
-**Example: SC scenario without values**
-```
-┌─────────────────────────────────────────────────────────┐
-│ Create order successfully                             × │
 │                                                         │
 │ Given  CustomerRegistered                               │
 │ When   CreateOrder                                      │
 │ Then   OrderCreated                                     │
 └─────────────────────────────────────────────────────────┘
-```
 
-**Example: SV scenario (read model projection)**
-```
 ┌─────────────────────────────────────────────────────────┐
-│ Order list shows total                                × │
+│ Order list aggregates orders                          × │
 │                                                         │
-│ Given  OrderCreated { orderId: "o1", amount: 100 }      │
-│ And    OrderCreated { orderId: "o2", amount: 200 }      │
-│ Then   OrderList { count: 2, total: 300 }               │
+│ Given  OrderCreated                                     │
+│ And    OrderCreated                                     │
+│ Then   OrderList                                        │
 └─────────────────────────────────────────────────────────┘
-```
-↑ `count` = number of Given events
-↑ `total` = sum of Given amounts
 
-**Example: Rejection**
-```
 ┌─────────────────────────────────────────────────────────┐
 │ Reject unknown customer                               × │
 │                                                         │
-│ When   CreateOrder { customerId: "unknown" }            │
+│ When   CreateOrder                                      │
 │ Then   Rejected: "Customer not found"                   │
 └─────────────────────────────────────────────────────────┘
 ```
+
+**Note:** Property-level values and data lineage are desktop features.
 
 ---
 

@@ -450,12 +450,6 @@ body {
   font-weight: 600;
 }
 
-.scenario-preview .values {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-family: 'SF Mono', Monaco, monospace;
-}
-
 /* Add scenario button */
 .add-scenario-btn {
   display: flex;

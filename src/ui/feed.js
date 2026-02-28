@@ -200,17 +200,7 @@ function renderSliceCard(slice, state) {
   `;
 }
 
-// Format values object as compact string
-function formatValues(values) {
-  if (!values || Object.keys(values).length === 0) return '';
-  const pairs = Object.entries(values)
-    .slice(0, 3) // limit to 3 properties
-    .map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
-  const suffix = Object.keys(values).length > 3 ? ', ...' : '';
-  return ` { ${pairs.join(', ')}${suffix} }`;
-}
-
-// Render scenario section for a slice
+// Render scenario section for a slice (element-level only, no property values)
 function renderScenarioSection(scenarios, state) {
   if (!scenarios || scenarios.length === 0) return '';
   
@@ -223,8 +213,7 @@ function renderScenarioSection(scenarios, state) {
         const el = state.elements[g.elementId];
         if (el) {
           const keyword = i === 0 ? 'Given' : 'And';
-          const valuesStr = formatValues(g.values);
-          previewLines.push(`<span class="keyword">${keyword}</span> <span class="event-ref">${el.name}</span><span class="values">${valuesStr}</span>`);
+          previewLines.push(`<span class="keyword">${keyword}</span> <span class="event-ref">${el.name}</span>`);
         }
       });
     }
@@ -232,8 +221,7 @@ function renderScenarioSection(scenarios, state) {
     if (scn.type === 'SC' && scn.when?.commandId) {
       const cmd = state.elements[scn.when.commandId];
       if (cmd) {
-        const valuesStr = formatValues(scn.when.values);
-        previewLines.push(`<span class="keyword">When</span> <span class="command-ref">${cmd.name}</span><span class="values">${valuesStr}</span>`);
+        previewLines.push(`<span class="keyword">When</span> <span class="command-ref">${cmd.name}</span>`);
       }
     }
     
@@ -241,16 +229,14 @@ function renderScenarioSection(scenarios, state) {
       if (scn.then.type === 'event') {
         const evt = state.elements[scn.then.eventId];
         if (evt) {
-          const valuesStr = formatValues(scn.then.values);
-          previewLines.push(`<span class="keyword">Then</span> <span class="event-ref">${evt.name}</span><span class="values">${valuesStr}</span>`);
+          previewLines.push(`<span class="keyword">Then</span> <span class="event-ref">${evt.name}</span>`);
         }
       } else if (scn.then.type === 'rejection') {
         previewLines.push(`<span class="keyword">Then</span> <span class="rejection-ref">Rejected: "${scn.then.reason || ''}"</span>`);
       } else if (scn.then.type === 'readModel') {
         const rm = state.elements[scn.then.readModelId];
         if (rm) {
-          const valuesStr = formatValues(scn.then.values);
-          previewLines.push(`<span class="keyword">Then</span> <span class="rm-ref">${rm.name}</span><span class="values">${valuesStr}</span>`);
+          previewLines.push(`<span class="keyword">Then</span> <span class="rm-ref">${rm.name}</span>`);
         }
       }
     }
