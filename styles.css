@@ -673,6 +673,12 @@ body {
   box-shadow: 0 6px 28px rgba(139, 92, 246, 0.5);
 }
 
+/* Move FAB left when event log is open */
+.event-log.open ~ .fab,
+body:has(.event-log.open) .fab {
+  right: 440px;
+}
+
 /* ═══════════ SHEETS ═══════════ */
 .sheet-overlay {
   position: fixed;
