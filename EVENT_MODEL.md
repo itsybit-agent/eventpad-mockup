@@ -83,13 +83,12 @@ Then: ElementRenamed { elementId: "e1", name: "OrderPlaced" }
 ## 📖 Properties
 
 ### SC: Add Property
-⏹️ ElementCard { elementId, expanded }
+⏹️ ElementCard { elementId, "+ Add property" button }
 ⏹️ PropertySheet { mode: "add" }
 🟦 AddProperty { elementId, propertyId*, name, propertyType }
 🟧 PropertyAdded { elementId, propertyId, name, propertyType }
-🟩 ElementCard *(property appears in list)*
 
-✅ "Add string property"
+✅ "Add guid property"
 ```
 Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
 When: AddProperty { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
@@ -106,11 +105,10 @@ Then: PropertyAdded { elementId: "e1", propertyId: "p2", name: "amount", propert
 **Property types:** string, number, boolean, date, guid, array, object
 
 ### SC: Edit Property
-⏹️ PropertyRow { elementId, propertyId }
+⏹️ PropertyRow { elementId, propertyId, tap }
 ⏹️ PropertySheet { mode: "edit", property }
 🟦 UpdateProperty { elementId, propertyId, name, propertyType }
 🟧 PropertyUpdated { elementId, propertyId, name, propertyType }
-🟩 ElementCard *(property updated)*
 
 ✅ "Update property name and type"
 ```
@@ -122,11 +120,9 @@ Then: PropertyUpdated { elementId: "e1", propertyId: "p1", name: "orderId", prop
 ```
 
 ### SC: Delete Property
-⏹️ PropertySheet { mode: "edit", property }
-⏹️ ConfirmDialog { "Delete this property?" }
+⏹️ PropertySheet { mode: "edit", "Delete" button }
 🟦 DeleteProperty { elementId, propertyId }
 🟧 PropertyRemoved { elementId, propertyId }
-🟩 ElementCard *(property removed)*
 
 ✅ "Delete property"
 ```
@@ -155,6 +151,33 @@ Then:
       { id: "p1", name: "orderId", type: "guid" },
       { id: "p2", name: "amount", type: "number" }
     ] 
+  }
+```
+
+✅ "Property update reflected in view"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  PropertyAdded { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "string" }
+  PropertyUpdated { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+Then:
+  ElementProperties { 
+    elementId: "e1", 
+    properties: [{ id: "p1", name: "orderId", type: "guid" }]
+  }
+```
+
+✅ "Property deletion reflected in view"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  PropertyAdded { elementId: "e1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+  PropertyAdded { elementId: "e1", propertyId: "p2", name: "amount", propertyType: "number" }
+  PropertyRemoved { elementId: "e1", propertyId: "p1" }
+Then:
+  ElementProperties { 
+    elementId: "e1", 
+    properties: [{ id: "p2", name: "amount", type: "number" }]
   }
 ```
 
