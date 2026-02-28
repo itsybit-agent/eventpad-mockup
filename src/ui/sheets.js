@@ -2,12 +2,26 @@
 // SHEET HELPERS
 // ===========================================
 
-export function showSheet(id) {
-  document.getElementById(id).classList.add('active');
+export function showSheet(idOrContent) {
+  // If it looks like HTML content, use dynamic sheet
+  if (idOrContent.includes('<')) {
+    const overlay = document.getElementById('dynamicSheet');
+    const content = document.getElementById('dynamicSheetContent');
+    content.innerHTML = idOrContent;
+    overlay.classList.add('active');
+  } else {
+    // Static sheet by ID
+    document.getElementById(idOrContent).classList.add('active');
+  }
 }
 
 export function hideSheet(id) {
-  document.getElementById(id).classList.remove('active');
+  if (id) {
+    document.getElementById(id).classList.remove('active');
+  } else {
+    // Hide dynamic sheet
+    document.getElementById('dynamicSheet').classList.remove('active');
+  }
 }
 
 export function hideAllSheets() {

@@ -723,3 +723,55 @@ body {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* Dynamic sheet structure */
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sheet-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.sheet-body {
+  margin-bottom: 20px;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.sheet-actions .btn {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sheet-actions .btn.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.sheet-actions .btn.primary:hover {
+  background: #8e44ad;
+}
+
+.sheet-actions .btn.secondary {
+  background: var(--surface-hover);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.sheet-actions .btn.secondary:hover {
+  border-color: var(--accent);
+}
