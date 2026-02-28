@@ -22,8 +22,17 @@ Element-first, slice-inferred event modeling tool.
 | Undo | SC | UndoButton → Undo → EventPopped |
 | Clear All | SC | ClearButton → ClearAll → AllCleared |
 | Copy Event Log | SC | EventLog → CopyEvents → EventsCopied |
+| Add SC Scenario | SC | SliceCard → AddScenario → ScenarioAdded |
+| Set Given | SC | ScenarioEditor → SetGiven → GivenSet |
+| Set When | SC | ScenarioEditor → SetWhen → WhenSet |
+| Set Then Event | SC | ScenarioEditor → SetThenEvent → ThenEventSet |
+| Set Then Rejection | SC | ScenarioEditor → SetThenRejection → ThenRejectionSet |
+| Add SV Scenario | SC | SliceCard → AddScenario → ScenarioAdded |
+| Set Then ReadModel | SC | ScenarioEditor → SetThenReadModel → ThenReadModelSet |
+| Delete Scenario | SC | ScenarioEditor → DeleteScenario → ScenarioDeleted |
 | View Feed | SV | Feed ← ElementCreated, SliceNamed, ... |
 | View Event Log | SV | EventLogPanel ← all events |
+| View Scenarios | SV | SliceCard ← ScenarioAdded, GivenSet, ... |
 
 ---
 
@@ -620,12 +629,20 @@ Then:
 
 ---
 
-## 📖 Scenarios (GWT)
+## 📖 Scenarios
 
-### SC: Add Scenario to Slice
-⏹️ SliceCard { sliceId }
-🟦 AddScenario { sliceId, scenarioId*, name }
-🟧 ScenarioAdded { sliceId, scenarioId, name }
+Two scenario types matching slice types:
+- **SC Scenarios:** Given (events) → When (command) → Then (event | rejection)
+- **SV Scenarios:** Given (events) → Then (read model state)
+
+---
+
+## 📖 SC Scenarios (Given/When/Then)
+
+### SC: Add SC Scenario
+⏹️ SliceCard { sliceId, sliceType: "SC" }
+🟦 AddScenario { sliceId, scenarioId*, name, scenarioType: "SC" }
+🟧 ScenarioAdded { sliceId, scenarioId, name, scenarioType: "SC" }
 🟩 SliceCard *(scenario section)*
 
 ### SC: Set Given Events
@@ -633,20 +650,114 @@ Then:
 🟦 SetGiven { scenarioId, events: [{elementId, values}] }
 🟧 GivenSet { scenarioId, events }
 
+✅ "Set given events with property values"
+```
+Given: 
+  ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
+When: SetGiven { scenarioId: "scn1", events: [
+  { elementId: "e1", values: { orderId: "123", amount: 100 } }
+]}
+Then: GivenSet { scenarioId: "scn1", events: [...] }
+```
+
 ### SC: Set When Command
 ⏹️ ScenarioEditor { scenarioId }
 🟦 SetWhen { scenarioId, commandId, values }
 🟧 WhenSet { scenarioId, commandId, values }
 
-### SC: Set Then Outcome
-⏹️ ScenarioEditor { scenarioId }
-🟦 SetThen { scenarioId, outcome: { type, elementId?, values?, reason? } }
-🟧 ThenSet { scenarioId, outcome }
+✅ "Set when command with values"
+```
+Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SC" }
+When: SetWhen { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } }
+Then: WhenSet { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } }
+```
 
-**Outcome types:**
-- `{ type: "event", elementId, values }` → ✅ success
-- `{ type: "rejection", reason }` → ❌ failure
-- `{ type: "readModel", elementId, values }` → 🟩 state view result
+### SC: Set Then Event (success)
+⏹️ ScenarioEditor { scenarioId }
+🟦 SetThenEvent { scenarioId, eventId, values }
+🟧 ThenEventSet { scenarioId, eventId, values }
+
+✅ "Expect event outcome"
+```
+Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SC" }
+When: SetThenEvent { scenarioId: "scn1", eventId: "e1", values: { orderId: "123" } }
+Then: ThenEventSet { scenarioId: "scn1", eventId: "e1", values: { orderId: "123" } }
+```
+
+### SC: Set Then Rejection (failure)
+⏹️ ScenarioEditor { scenarioId }
+🟦 SetThenRejection { scenarioId, reason }
+🟧 ThenRejectionSet { scenarioId, reason }
+
+✅ "Expect rejection outcome"
+```
+Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SC" }
+When: SetThenRejection { scenarioId: "scn1", reason: "Insufficient funds" }
+Then: ThenRejectionSet { scenarioId: "scn1", reason: "Insufficient funds" }
+```
+
+**SC Scenario display:**
+```
+✅ "Create order successfully"
+Given: 🟧 CustomerRegistered { customerId: "c1" }
+When:  🟦 CreateOrder { customerId: "c1", amount: 100 }
+Then:  🟧 OrderCreated { orderId: "o1", amount: 100 }
+
+❌ "Reject order for unknown customer"
+Given: []
+When:  🟦 CreateOrder { customerId: "unknown", amount: 100 }
+Then:  Rejected: "Customer not found"
+```
+
+---
+
+## 📖 SV Scenarios (Given/Then)
+
+SV scenarios have no "When" — they test read model projections.
+
+### SC: Add SV Scenario
+⏹️ SliceCard { sliceId, sliceType: "SV" }
+🟦 AddScenario { sliceId, scenarioId*, name, scenarioType: "SV" }
+🟧 ScenarioAdded { sliceId, scenarioId, name, scenarioType: "SV" }
+🟩 SliceCard *(scenario section)*
+
+### SC: Set Given Events (same as SC)
+⏹️ ScenarioEditor { scenarioId }
+🟦 SetGiven { scenarioId, events: [{elementId, values}] }
+🟧 GivenSet { scenarioId, events }
+
+### SC: Set Then ReadModel
+⏹️ ScenarioEditor { scenarioId }
+🟦 SetThenReadModel { scenarioId, readModelId, values }
+🟧 ThenReadModelSet { scenarioId, readModelId, values }
+
+✅ "Read model shows projected state"
+```
+Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SV" }
+When: SetThenReadModel { scenarioId: "scn1", readModelId: "rm1", values: { count: 2, items: ["a", "b"] } }
+Then: ThenReadModelSet { scenarioId: "scn1", readModelId: "rm1", values: { count: 2, items: ["a", "b"] } }
+```
+
+**SV Scenario display:**
+```
+✅ "Order list shows orders"
+Given: 
+  🟧 OrderCreated { orderId: "o1", amount: 100 }
+  🟧 OrderCreated { orderId: "o2", amount: 200 }
+Then:  
+  🟩 OrderList { count: 2, totalAmount: 300 }
+
+✅ "Empty order list"
+Given: []
+Then:  🟩 OrderList { count: 0, totalAmount: 0 }
+```
+
+---
+
+### SV: View Scenarios
+🟧 ScenarioAdded, GivenSet, WhenSet, ThenEventSet, ThenRejectionSet, ThenReadModelSet
+🟩 SliceScenarios { sliceId, scenarios: Scenario[] }
+⏹️ SliceCard *(scenario count + preview)*
 
 ---
 
@@ -841,10 +952,13 @@ Then:
 | SliceNamed | sliceId, name |
 | SliceElementAdded | sliceId, elementId, position |
 | SliceElementRemoved | sliceId, elementId |
-| ScenarioAdded | sliceId, scenarioId, name |
-| GivenSet | scenarioId, events |
+| ScenarioAdded | sliceId, scenarioId, name, scenarioType |
+| GivenSet | scenarioId, events: [{elementId, values}] |
 | WhenSet | scenarioId, commandId, values |
-| ThenSet | scenarioId, outcome |
+| ThenEventSet | scenarioId, eventId, values |
+| ThenRejectionSet | scenarioId, reason |
+| ThenReadModelSet | scenarioId, readModelId, values |
+| ScenarioDeleted | sliceId, scenarioId |
 
 ---
 
