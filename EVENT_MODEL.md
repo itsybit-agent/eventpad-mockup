@@ -999,10 +999,10 @@ Then:  🟩 OrderList { count: 0, totalAmount: 0, orders: [] }
 
 ---
 
-### SV: View Scenarios
+### SV: View Scenario
 🟧 ScenarioAdded, GivenSet, WhenSet, ThenEventSet, ThenRejectionSet, ThenReadModelSet
 🟩 ScenarioCard { scenarioId, name, type, given[], when?, then }
-⏹️ SliceCard *(scenario section with cards)*
+⏹️ ScenarioCard *(in slice scenario section)*
 
 **ScenarioCard Read Model:**
 ```typescript
@@ -1013,35 +1013,43 @@ ScenarioCard {
   given: Array<{
     elementId: string
     elementName: string
-    values?: Record<string, any>  // optional example values
+    propertyValues: Array<{ name: string, value: any }>
   }>
   when?: {
     commandId: string
     commandName: string
-    values?: Record<string, any>
+    propertyValues: Array<{ name: string, value: any }>
   }
   then: 
-    | { type: "event", eventId: string, eventName: string, values?: Record<string, any> }
+    | { type: "event", eventId: string, eventName: string, propertyValues: Array<{ name, value }> }
     | { type: "rejection", reason: string }
-    | { type: "readModel", readModelId: string, readModelName: string, values?: Record<string, any> }
+    | { type: "readModel", readModelId: string, readModelName: string, propertyValues: Array<{ name, value }> }
 }
 ```
 
-**Display format (with optional values):**
+**Display rules:**
+1. If **no values** specified → show element name only
+2. If **values** specified → show element name + `{ prop: value, ... }`
+3. Then values should **match** Given/When values to show data flow
+
+**Example: SC scenario with values (shows data flow)**
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Create order for gold customer                        × │
 │                                                         │
 │ Given  CustomerRegistered { customerId: "cust-1",       │
-│                             tier: "gold" }              │
+│          tier: "gold" }                                 │
 │ When   CreateOrder { customerId: "cust-1",              │
-│                      amount: 250 }                      │
-│ Then   OrderCreated { orderId: "*",                     │
-│                       discount: 25 }                    │
+│          amount: 250 }                                  │
+│ Then   OrderCreated { customerId: "cust-1",             │
+│          amount: 250, discount: 25 }                    │
 └─────────────────────────────────────────────────────────┘
 ```
+↑ `customerId` flows from Given → When → Then
+↑ `amount` flows from When → Then  
+↑ `discount` is calculated (new value)
 
-**Display format (without values):**
+**Example: SC scenario without values**
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Create order successfully                             × │
@@ -1052,12 +1060,24 @@ ScenarioCard {
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Rejection display:**
+**Example: SV scenario (read model projection)**
+```
+┌─────────────────────────────────────────────────────────┐
+│ Order list shows total                                × │
+│                                                         │
+│ Given  OrderCreated { orderId: "o1", amount: 100 }      │
+│ And    OrderCreated { orderId: "o2", amount: 200 }      │
+│ Then   OrderList { count: 2, total: 300 }               │
+└─────────────────────────────────────────────────────────┘
+```
+↑ `count` = number of Given events
+↑ `total` = sum of Given amounts
+
+**Example: Rejection**
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Reject unknown customer                               × │
 │                                                         │
-│ Given  (none)                                           │
 │ When   CreateOrder { customerId: "unknown" }            │
 │ Then   Rejected: "Customer not found"                   │
 └─────────────────────────────────────────────────────────┘
