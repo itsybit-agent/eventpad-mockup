@@ -639,21 +639,26 @@ Two scenario types matching slice types:
 
 ## 📖 SC Scenarios (Given/When/Then)
 
-### SC: Add SC Scenario
-⏹️ SliceCard { sliceId, sliceType: "SC" }
-🟦 AddScenario { sliceId, scenarioId*, name, scenarioType: "SC" }
-🟧 ScenarioAdded { sliceId, scenarioId, name, scenarioType: "SC" }
-🟩 SliceCard *(scenario section)*
+### SC: Add Scenario
+⏹️ SliceCard { sliceId, "+ Add scenario" button }
+🟦 AddScenario { sliceId, scenarioId*, name, scenarioType }
+🟧 ScenarioAdded { sliceId, scenarioId, name, scenarioType }
+
+✅ "Add scenario to SC slice"
+```
+Given: SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
+When: AddScenario { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
+Then: ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
+```
 
 ### SC: Set Given Events
-⏹️ ScenarioEditor { scenarioId }
+⏹️ ScenarioEditor { scenarioId, GIVEN section }
 🟦 SetGiven { scenarioId, events: [{elementId, values}] }
 🟧 GivenSet { scenarioId, events }
 
 ✅ "Set given events with property values"
 ```
-Given: 
-  ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
+Given: ScenarioAdded { sliceId: "s1", scenarioId: "scn1", scenarioType: "SC" }
 When: SetGiven { scenarioId: "scn1", events: [
   { elementId: "e1", values: { orderId: "123", amount: 100 } }
 ]}
@@ -661,7 +666,7 @@ Then: GivenSet { scenarioId: "scn1", events: [...] }
 ```
 
 ### SC: Set When Command
-⏹️ ScenarioEditor { scenarioId }
+⏹️ ScenarioEditor { scenarioId, WHEN section }
 🟦 SetWhen { scenarioId, commandId, values }
 🟧 WhenSet { scenarioId, commandId, values }
 
@@ -673,7 +678,7 @@ Then: WhenSet { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } 
 ```
 
 ### SC: Set Then Event (success)
-⏹️ ScenarioEditor { scenarioId }
+⏹️ ScenarioEditor { scenarioId, THEN section }
 🟦 SetThenEvent { scenarioId, eventId, values }
 🟧 ThenEventSet { scenarioId, eventId, values }
 
@@ -685,7 +690,7 @@ Then: ThenEventSet { scenarioId: "scn1", eventId: "e1", values: { orderId: "123"
 ```
 
 ### SC: Set Then Rejection (failure)
-⏹️ ScenarioEditor { scenarioId }
+⏹️ ScenarioEditor { scenarioId, THEN section }
 🟦 SetThenRejection { scenarioId, reason }
 🟧 ThenRejectionSet { scenarioId, reason }
 
@@ -694,6 +699,37 @@ Then: ThenEventSet { scenarioId: "scn1", eventId: "e1", values: { orderId: "123"
 Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SC" }
 When: SetThenRejection { scenarioId: "scn1", reason: "Insufficient funds" }
 Then: ThenRejectionSet { scenarioId: "scn1", reason: "Insufficient funds" }
+```
+
+### SC: Delete Scenario
+⏹️ ScenarioCard { scenarioId, delete button }
+🟦 DeleteScenario { scenarioId }
+🟧 ScenarioDeleted { sliceId, scenarioId }
+
+### SV: View Slice Scenarios
+🟧 ScenarioAdded, GivenSet, WhenSet, ThenEventSet, ThenRejectionSet, ScenarioDeleted
+🟩 SliceScenarios { sliceId, scenarios: Scenario[] }
+⏹️ SliceCard *(scenario count badge + list)*
+
+✅ "Slice shows its scenarios"
+```
+Given:
+  ScenarioAdded { sliceId: "s1", scenarioId: "scn1", name: "Create order", scenarioType: "SC" }
+  GivenSet { scenarioId: "scn1", events: [] }
+  WhenSet { scenarioId: "scn1", commandId: "c1", values: { orderId: "123" } }
+  ThenEventSet { scenarioId: "scn1", eventId: "e1", values: { orderId: "123" } }
+Then:
+  SliceScenarios { 
+    sliceId: "s1", 
+    scenarios: [{
+      id: "scn1",
+      name: "Create order",
+      type: "SC",
+      given: [],
+      when: { commandId: "c1", values: { orderId: "123" } },
+      then: { type: "event", eventId: "e1", values: { orderId: "123" } }
+    }]
+  }
 ```
 
 **SC Scenario display:**
@@ -716,18 +752,17 @@ Then:  Rejected: "Customer not found"
 SV scenarios have no "When" — they test read model projections.
 
 ### SC: Add SV Scenario
-⏹️ SliceCard { sliceId, sliceType: "SV" }
+⏹️ SliceCard { sliceId, sliceType: "SV", "+ Add scenario" button }
 🟦 AddScenario { sliceId, scenarioId*, name, scenarioType: "SV" }
 🟧 ScenarioAdded { sliceId, scenarioId, name, scenarioType: "SV" }
-🟩 SliceCard *(scenario section)*
 
-### SC: Set Given Events (same as SC)
-⏹️ ScenarioEditor { scenarioId }
+### SC: Set Given Events
+⏹️ ScenarioEditor { scenarioId, GIVEN section }
 🟦 SetGiven { scenarioId, events: [{elementId, values}] }
 🟧 GivenSet { scenarioId, events }
 
 ### SC: Set Then ReadModel
-⏹️ ScenarioEditor { scenarioId }
+⏹️ ScenarioEditor { scenarioId, THEN section }
 🟦 SetThenReadModel { scenarioId, readModelId, values }
 🟧 ThenReadModelSet { scenarioId, readModelId, values }
 
@@ -736,6 +771,33 @@ SV scenarios have no "When" — they test read model projections.
 Given: ScenarioAdded { scenarioId: "scn1", scenarioType: "SV" }
 When: SetThenReadModel { scenarioId: "scn1", readModelId: "rm1", values: { count: 2, items: ["a", "b"] } }
 Then: ThenReadModelSet { scenarioId: "scn1", readModelId: "rm1", values: { count: 2, items: ["a", "b"] } }
+```
+
+### SV: View SV Slice Scenarios
+🟧 ScenarioAdded, GivenSet, ThenReadModelSet, ScenarioDeleted
+🟩 SliceScenarios { sliceId, scenarios: Scenario[] }
+⏹️ SliceCard *(scenario count badge + list)*
+
+✅ "SV slice shows its scenarios"
+```
+Given:
+  ScenarioAdded { sliceId: "sv1", scenarioId: "scn1", name: "Order list shows orders", scenarioType: "SV" }
+  GivenSet { scenarioId: "scn1", events: [
+    { elementId: "e1", values: { orderId: "o1", amount: 100 } },
+    { elementId: "e1", values: { orderId: "o2", amount: 200 } }
+  ]}
+  ThenReadModelSet { scenarioId: "scn1", readModelId: "rm1", values: { count: 2, totalAmount: 300 } }
+Then:
+  SliceScenarios { 
+    sliceId: "sv1", 
+    scenarios: [{
+      id: "scn1",
+      name: "Order list shows orders",
+      type: "SV",
+      given: [{ elementId: "e1", values: {...} }, { elementId: "e1", values: {...} }],
+      then: { type: "readModel", readModelId: "rm1", values: { count: 2, totalAmount: 300 } }
+    }]
+  }
 ```
 
 **SV Scenario display:**
