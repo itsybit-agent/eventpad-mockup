@@ -432,17 +432,22 @@ body {
 
 .scenario-preview .event-ref {
   color: var(--event);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .scenario-preview .command-ref {
   color: var(--command);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .scenario-preview .rm-ref {
   color: var(--readModel);
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.scenario-preview .rejection-ref {
+  color: #ef4444;
+  font-weight: 600;
 }
 
 /* Add scenario button */

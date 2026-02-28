@@ -205,22 +205,17 @@ function renderScenarioSection(scenarios, state) {
   if (!scenarios || scenarios.length === 0) return '';
   
   const cards = scenarios.map(scn => {
-    // Build preview with colored references
+    // Build preview with colored references (Given/And/When/Then format)
     let previewLines = [];
     
     if (scn.given?.length > 0) {
-      const givenRefs = scn.given
-        .map(g => {
-          const el = state.elements[g.elementId];
-          return el ? `<span class="event-ref">${el.name}</span>` : null;
-        })
-        .filter(Boolean);
-      if (givenRefs.length > 0) {
-        previewLines.push(`<span class="keyword">Given</span> ${givenRefs[0]}`);
-        givenRefs.slice(1).forEach(ref => {
-          previewLines.push(`<span class="keyword">And</span> ${ref}`);
-        });
-      }
+      scn.given.forEach((g, i) => {
+        const el = state.elements[g.elementId];
+        if (el) {
+          const keyword = i === 0 ? 'Given' : 'And';
+          previewLines.push(`<span class="keyword">${keyword}</span> <span class="event-ref">${el.name}</span>`);
+        }
+      });
     }
     
     if (scn.type === 'SC' && scn.when?.commandId) {
@@ -237,7 +232,7 @@ function renderScenarioSection(scenarios, state) {
           previewLines.push(`<span class="keyword">Then</span> <span class="event-ref">${evt.name}</span>`);
         }
       } else if (scn.then.type === 'rejection') {
-        previewLines.push(`<span class="keyword">Then</span> <span style="color: #ef4444;">Rejected: ${scn.then.reason || ''}</span>`);
+        previewLines.push(`<span class="keyword">Then</span> <span class="rejection-ref">Rejected: "${scn.then.reason || ''}"</span>`);
       } else if (scn.then.type === 'readModel') {
         const rm = state.elements[scn.then.readModelId];
         if (rm) {
@@ -248,7 +243,7 @@ function renderScenarioSection(scenarios, state) {
     
     return `
       <div class="scenario-card" onclick="window.EventPad.editScenario('${scn.id}')">
-        <span class="close-btn">×</span>
+        <span class="close-btn" onclick="event.stopPropagation(); window.EventPad.deleteScenario('${scn.id}')">×</span>
         <div class="scenario-header">
           <span class="scenario-name">${scn.name}</span>
         </div>
