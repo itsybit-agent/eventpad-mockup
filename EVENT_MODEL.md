@@ -39,10 +39,9 @@ Element-first, slice-inferred event modeling tool.
 ## 📖 Elements
 
 ### SC: Create Element
-⏹️ Feed { }
+⏹️ Feed { FAB button }
 🟦 CreateElement { elementId*, elementType, name }
 🟧 ElementCreated { elementId, elementType, name, properties: [] }
-🟩 Feed *(element card appears)*
 
 ✅ "Create event element"
 ```
@@ -66,10 +65,9 @@ Then: ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrd
 **Unified entry point** — tap any element (in slice or loose) to get edit options.
 
 ### SC: Rename Element
-⏹️ ElementMenuSheet { elementId }
+⏹️ ElementMenuSheet { elementId, "Rename" option }
 🟦 RenameElement { elementId, name }
 🟧 ElementRenamed { elementId, name }
-🟩 Feed *(element name updated)*
 
 ✅ "Rename element"
 ```
@@ -184,14 +182,14 @@ Then:
 ---
 
 ### SV: View Feed
-🟧 ElementCreated, SliceNamed, SliceElementAdded
+🟧 ElementCreated, ElementDeleted, ElementRenamed, SliceInferred, SliceNamed, SliceElementAdded, AllCleared
 🟩 Feed { elements: Element[], slices: Slice[] }
 ⏹️ Feed
 
 ✅ "Feed shows created element"
 ```
 Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
-Then: Feed { elements: [{ id: "e1", type: "event", name: "OrderCreated" }] }
+Then: Feed { elements: [{ id: "e1", type: "event", name: "OrderCreated" }], slices: [] }
 ```
 
 ✅ "Feed shows multiple elements"
@@ -203,11 +201,29 @@ Then: Feed {
   elements: [
     { id: "c1", type: "command", name: "CreateOrder" },
     { id: "e1", type: "event", name: "OrderCreated" }
-  ] 
+  ],
+  slices: []
 }
 ```
 
-✅ "Feed shows named slice"
+✅ "Feed reflects element rename"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementRenamed { elementId: "e1", name: "OrderPlaced" }
+Then: Feed { elements: [{ id: "e1", type: "event", name: "OrderPlaced" }], slices: [] }
+```
+
+✅ "Feed reflects element deletion"
+```
+Given:
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  ElementCreated { elementId: "e2", elementType: "event", name: "OrderShipped" }
+  ElementDeleted { elementId: "e1" }
+Then: Feed { elements: [{ id: "e2", type: "event", name: "OrderShipped" }], slices: [] }
+```
+
+✅ "Feed shows named slice (elements move from loose to slice)"
 ```
 Given:
   ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
@@ -216,8 +232,35 @@ Given:
   SliceNamed { sliceId: "s1", name: "Create Order" }
 Then: Feed {
   slices: [{ id: "s1", name: "Create Order", type: "SC", elements: ["c1", "e1"] }],
-  elements: []  // c1 and e1 now in slice, not loose
+  elements: []
 }
+```
+
+✅ "Feed reflects slice rename"
+```
+Given:
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
+  SliceNamed { sliceId: "s1", name: "Create Order" }
+  SliceNamed { sliceId: "s1", name: "Place Order" }
+Then: Feed { slices: [{ id: "s1", name: "Place Order", type: "SC", elements: ["c1", "e1"] }] }
+```
+
+✅ "Feed reflects element added to slice"
+```
+Given:
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
+  SliceElementAdded { sliceId: "s1", elementId: "scr1", position: "start" }
+Then: Feed { slices: [{ id: "s1", elements: ["scr1", "c1", "e1"] }] }
+```
+
+✅ "Feed is empty after clear all"
+```
+Given:
+  ElementCreated { elementId: "e1" }
+  ElementCreated { elementId: "c1" }
+  SliceInferred { sliceId: "s1" }
+  AllCleared { eventCount: 3 }
+Then: Feed { elements: [], slices: [] }
 ```
 
 ---
@@ -382,8 +425,6 @@ Then:
 🟦 CreateSVSlice { readModelId, eventIds[] }
 🟧 ConsumerAdded[] { fromId: eventId, toId: readModelId, relation: "consumer" }
 🟧 SliceInferred { sliceId, sliceType: "SV", elements: [...eventIds, readModelId], complete: true }
-🟩 Feed { new SV slice appears }
-⏹️ SliceNameSheet { }
 
 ✅ "Pick multiple existing events for read model"
 ```
@@ -422,11 +463,9 @@ Then:
 ## 📖 Slice Naming
 
 ### SC: Rename Slice
-⏹️ SliceHeader { sliceId, currentName }
+⏹️ SliceHeader { sliceId, tap to rename }
 🟦 RenameSlice { sliceId, name }
 🟧 SliceNamed { sliceId, name }
-🟩 Feed { slice.name updated }
-⏹️ SliceCard { shows new name }
 
 ✅ "Tap slice header → rename slice"
 ```
@@ -460,10 +499,9 @@ Then: SliceNamed { sliceId: "s1", name: "Create Order" }
 ## 📖 Delete Element
 
 ### SC: Delete Element
-⏹️ ElementCard { elementId, swipe or long-press }
+⏹️ ElementMenuSheet { elementId, "Delete" option }
 🟦 DeleteElement { elementId }
 🟧 ElementDeleted { elementId }
-🟩 Feed { element removed }
 
 ✅ "Delete loose element"
 ```
@@ -491,7 +529,6 @@ Then:
 ⏹️ Header { UndoButton }
 🟦 Undo { }
 🟧 EventPopped { poppedEvent }
-🟩 Feed { previous state restored }
 
 ✅ "Undo last action"
 ```
@@ -508,10 +545,8 @@ Then: EventPopped { poppedEvent: { type: "ElementCreated", data: { elementId: "e
 
 ### SC: Clear All Events
 ⏹️ Header { ClearButton }
-⏹️ ConfirmDialog { "Clear all?" }
 🟦 ClearAll { }
 🟧 AllCleared { eventCount }
-🟩 Feed { empty }
 
 ✅ "Clear all events"
 ```
@@ -577,7 +612,6 @@ Then:
 ⏹️ ActionSheet { "What screen triggers this?" }
 🟦 AddElementToSlice { sliceId, elementId, position: "start" }
 🟧 SliceElementAdded { sliceId, elementId, position: "start" }
-🟩 SliceCard *(screen at start)*
 
 ✅ "Add input screen to SC slice"
 ```
@@ -601,7 +635,6 @@ Then:
 ⏹️ ActionSheet { "What does this update?" }
 🟦 AddElementToSlice { sliceId, elementId, position: "end" }
 🟧 SliceElementAdded { sliceId, elementId, position: "end" }
-🟩 SliceCard *(readModel at end)*
 
 ✅ "Add output read model to SC slice"
 ```
