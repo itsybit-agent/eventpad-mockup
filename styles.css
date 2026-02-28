@@ -802,3 +802,62 @@ body {
 .sheet-btn.danger:hover {
   background: #c0392b;
 }
+
+/* Property value inputs in scenarios */
+.given-event-item {
+  margin-bottom: 8px;
+}
+
+.given-event-item.selected {
+  background: rgba(155, 89, 182, 0.05);
+  border-radius: 8px;
+}
+
+.property-inputs {
+  padding: 8px 12px 12px 36px;
+}
+
+.property-inputs.hidden {
+  display: none;
+}
+
+.property-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.property-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.property-input-row label {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 80px;
+  font-family: monospace;
+}
+
+.property-value-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.property-value-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.property-value-input::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}

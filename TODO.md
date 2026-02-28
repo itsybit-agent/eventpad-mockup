@@ -15,7 +15,7 @@
 
 ## Implementation TODO
 - [x] Scenarios - Add/Edit/Delete SC and SV scenarios ✅
-- [ ] Property values in scenarios - allow entering values for Given/When/Then
+- [x] Property values in scenarios - allow entering values for Given/When/Then ✅
 
 ## Future
 - [ ] AU Slices - Set Trigger, Add Context, Set Command

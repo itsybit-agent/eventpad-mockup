@@ -17,7 +17,19 @@ import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/pa
 import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
 import { deleteElement } from './features/deleteElement/command.js';
 import { openElementMenu, menuRename, menuProperties, menuConnect, menuDelete } from './features/elementMenu/sheet.js';
-import { openAddScenarioSheet, openEditScenarioSheet, submitAddScenario, saveScenario, deleteScenario, initScenarios } from './features/scenarios/sheet.js';
+import { 
+  openAddScenarioSheet, 
+  openEditScenarioSheet, 
+  submitAddScenario, 
+  saveScenario, 
+  deleteScenario, 
+  initScenarios,
+  toggleGivenEvent,
+  selectWhenCommand,
+  selectThenType,
+  selectThenEvent,
+  selectThenReadModel
+} from './features/scenarios/sheet.js';
 import { projectState } from './core/projections.js';
 
 // ===========================================
@@ -88,7 +100,12 @@ window.EventPad = {
     }
   },
   saveScenario,
-  deleteScenario
+  deleteScenario,
+  toggleGivenEvent,
+  selectWhenCommand,
+  selectThenType,
+  selectThenEvent,
+  selectThenReadModel
 };
 
 // ===========================================
