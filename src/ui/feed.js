@@ -10,12 +10,20 @@ import { promptSliceName } from '../features/nameSlice/sheet.js';
 import { copyEvent } from '../features/eventLog/panel.js';
 // Scenarios are handled via window.EventPad.addScenario / editScenario
 
-// Render slice elements based on slice type
+// Type label mapping
+const typeBadgeLabels = {
+  screen: 'SCREEN',
+  command: 'COMMAND', 
+  event: 'EVENT',
+  readModel: 'READ MODEL',
+  processor: 'PROCESSOR'
+};
+
 // Render properties inline
 function renderInlineProperties(props) {
   if (!props || props.length === 0) return '';
   return `<div class="slice-element-props">${props.map(p => 
-    `<span class="prop-badge">${p.name}: ${p.type}</span>`
+    `<span class="prop-badge">${p.name}</span>`
   ).join('')}</div>`;
 }
 
@@ -26,13 +34,13 @@ function renderSliceElements(elements, sliceType, state) {
   
   // Default: vertical list - all elements tappable for editing
   return elements.map((el, i) => `
-    ${i > 0 ? '<div class="slice-arrow">↓</div>' : ''}
-    <div class="slice-element slice-element-tappable" onclick="window.EventPad.openElementMenu('${el.id}')">
-      <div class="slice-element-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
-      <div class="slice-element-content">
+    ${i > 0 ? '<div class="slice-arrow"></div>' : ''}
+    <div class="slice-element" data-type="${el.type}" onclick="window.EventPad.openElementMenu('${el.id}')">
+      <div class="slice-element-header">
+        <span class="element-type-badge ${el.type}">${typeBadgeLabels[el.type] || el.type}</span>
         <span class="slice-element-name">${el.name}</span>
-        ${renderInlineProperties(el.properties)}
       </div>
+      ${renderInlineProperties(el.properties)}
     </div>
   `).join('');
 }
@@ -170,19 +178,24 @@ function renderSliceCard(slice, state) {
   // Build scenario cards HTML
   const scenarioCardsHtml = renderScenarioSection(scenarios, state);
   
+  const sliceTypeLabel = slice.type === 'SC' ? 'STATE CHANGE' : slice.type === 'SV' ? 'STATE VIEW' : 'AUTOMATION';
+  
   return `
     <div class="slice-card" data-slice-id="${slice.id}">
-      <div class="slice-header" onclick="window.EventPad.promptSliceName('${slice.id}', '${safeName}')" style="cursor: pointer;">
+      <div class="slice-header" onclick="window.EventPad.promptSliceName('${slice.id}', '${safeName}')">
         <span class="slice-name">${slice.name || '(tap to name)'}</span>
-        <span class="slice-type">${slice.type}${slice.complete === false ? ' ⏳' : ''}</span>
+        <span class="slice-type ${slice.type}">${sliceTypeLabel}${slice.complete === false ? ' ⏳' : ''}</span>
       </div>
       <div class="slice-elements">
         ${renderSliceElements(sliceElements, slice.type, state)}
+        <button class="add-element-btn" onclick="event.stopPropagation(); window.EventPad.openCreateSheet()">+ Add element</button>
       </div>
-      ${scenarioCardsHtml}
-      <button class="add-scenario-btn" onclick="window.EventPad.addScenario('${slice.id}', '${slice.type}')">
-        + Add Scenario
-      </button>
+      ${scenarioCardsHtml || `
+        <div class="scenarios-section">
+          <h4>SCENARIOS (0)</h4>
+          <button class="add-scenario-btn" onclick="event.stopPropagation(); window.EventPad.addScenario('${slice.id}', '${slice.type}')">+ Add scenario</button>
+        </div>
+      `}
     </div>
   `;
 }
@@ -192,52 +205,66 @@ function renderScenarioSection(scenarios, state) {
   if (!scenarios || scenarios.length === 0) return '';
   
   const cards = scenarios.map(scn => {
-    const icon = scn.then?.type === 'rejection' ? '❌' : '✅';
+    // Build preview with colored references
+    let previewLines = [];
     
-    // Build preview
-    let preview = '';
     if (scn.given?.length > 0) {
-      const givenNames = scn.given
-        .map(g => state.elements[g.elementId]?.name)
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(', ');
-      if (givenNames) preview += `Given: ${givenNames} `;
+      const givenRefs = scn.given
+        .map(g => {
+          const el = state.elements[g.elementId];
+          return el ? `<span class="event-ref">${el.name}</span>` : null;
+        })
+        .filter(Boolean);
+      if (givenRefs.length > 0) {
+        previewLines.push(`<span class="keyword">Given</span> ${givenRefs[0]}`);
+        givenRefs.slice(1).forEach(ref => {
+          previewLines.push(`<span class="keyword">And</span> ${ref}`);
+        });
+      }
     }
     
     if (scn.type === 'SC' && scn.when?.commandId) {
-      const cmdName = state.elements[scn.when.commandId]?.name;
-      if (cmdName) preview += `When: ${cmdName} `;
+      const cmd = state.elements[scn.when.commandId];
+      if (cmd) {
+        previewLines.push(`<span class="keyword">When</span> <span class="command-ref">${cmd.name}</span>`);
+      }
     }
     
     if (scn.then) {
       if (scn.then.type === 'event') {
-        const eventName = state.elements[scn.then.eventId]?.name;
-        if (eventName) preview += `Then: ${eventName}`;
+        const evt = state.elements[scn.then.eventId];
+        if (evt) {
+          previewLines.push(`<span class="keyword">Then</span> <span class="event-ref">${evt.name}</span>`);
+        }
       } else if (scn.then.type === 'rejection') {
-        preview += `Then: Rejected`;
+        previewLines.push(`<span class="keyword">Then</span> <span style="color: #ef4444;">Rejected: ${scn.then.reason || ''}</span>`);
       } else if (scn.then.type === 'readModel') {
-        const rmName = state.elements[scn.then.readModelId]?.name;
-        if (rmName) preview += `Then: ${rmName}`;
+        const rm = state.elements[scn.then.readModelId];
+        if (rm) {
+          previewLines.push(`<span class="keyword">Then</span> <span class="rm-ref">${rm.name}</span>`);
+        }
       }
     }
     
     return `
       <div class="scenario-card" onclick="window.EventPad.editScenario('${scn.id}')">
+        <span class="close-btn">×</span>
         <div class="scenario-header">
-          <span class="scenario-icon">${icon}</span>
           <span class="scenario-name">${scn.name}</span>
-          <span class="badge small ${scn.type}">${scn.type}</span>
         </div>
-        <div class="scenario-preview">${preview || 'Tap to edit...'}</div>
+        <div class="scenario-preview">${previewLines.join('<br>') || 'Tap to edit...'}</div>
       </div>
     `;
   }).join('');
   
+  const sliceId = scenarios[0]?.sliceId || '';
+  const sliceType = scenarios[0]?.type || 'SC';
+  
   return `
     <div class="scenarios-section">
-      <h4>Scenarios (${scenarios.length})</h4>
+      <h4>SCENARIOS (${scenarios.length})</h4>
       ${cards}
+      <button class="add-scenario-btn" onclick="event.stopPropagation(); window.EventPad.addScenario('${sliceId}', '${sliceType}')">+ Add scenario</button>
     </div>
   `;
 }
