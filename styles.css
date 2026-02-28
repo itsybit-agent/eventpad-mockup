@@ -661,11 +661,15 @@ body {
   border: none;
   border-radius: 16px;
   color: white;
-  font-size: 24px;
+  font-size: 28px;
+  line-height: 1;
   cursor: pointer;
   z-index: 250;
   box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fab:hover {
