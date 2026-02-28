@@ -775,3 +775,30 @@ body {
 .sheet-actions .btn.secondary:hover {
   border-color: var(--accent);
 }
+
+/* Scenario sheet sections */
+.scenario-section {
+  margin-bottom: 20px;
+}
+
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.then-type-toggle {
+  display: flex;
+  gap: 12px;
+}
+
+.sheet-btn.danger {
+  background: #e74c3c;
+}
+
+.sheet-btn.danger:hover {
+  background: #c0392b;
+}

@@ -162,12 +162,48 @@
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
-
-  <!-- Dynamic sheet container -->
-  <div class="sheet-overlay" id="dynamicSheet">
-    <div class="sheet" id="dynamicSheetContent"></div>
+  <!-- Add Scenario Sheet -->
+  <div class="sheet-overlay" id="addScenarioSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="addScenarioTitle">Add Scenario</div>
+      <input type="text" class="sheet-input" id="scenarioNameInput" placeholder="e.g. Create order successfully">
+      <p style="color: var(--text-muted); font-size: 12px; margin: 8px 0 16px;" id="scenarioTypeHint">Given/When/Then</p>
+      <button class="sheet-btn" onclick="window.EventPad.submitAddScenario()">Add Scenario</button>
+    </div>
   </div>
+
+  <!-- Edit Scenario Sheet -->
+  <div class="sheet-overlay" id="editScenarioSheet">
+    <div class="sheet" style="max-height: 85vh; overflow-y: auto;">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="editScenarioTitle">Edit Scenario</div>
+      
+      <div class="scenario-section">
+        <div class="section-label">GIVEN</div>
+        <div id="givenEventsList" class="checkbox-list"></div>
+      </div>
+      
+      <div class="scenario-section" id="whenSection">
+        <div class="section-label">WHEN</div>
+        <select class="sheet-input" id="whenCommandSelect" style="padding: 12px;">
+          <option value="">Select command...</option>
+        </select>
+      </div>
+      
+      <div class="scenario-section">
+        <div class="section-label">THEN</div>
+        <div id="thenOptions"></div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 20px;">
+        <button class="sheet-btn danger" onclick="window.EventPad.deleteScenario()" style="flex: 1;">Delete</button>
+        <button class="sheet-btn" onclick="window.EventPad.saveScenario()" style="flex: 2;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
   <script type="module" src="src/main.js"></script>
 </body>

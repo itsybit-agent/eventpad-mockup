@@ -1,14 +1,15 @@
 // ===========================================
-// SCENARIOS - Editor Sheet
+// SCENARIOS - UI Sheets
 // ===========================================
 
-import { showSheet, hideSheet } from '../../ui/sheets.js';
+import { showSheet, hideAllSheets } from '../../ui/sheets.js';
 import { showToast } from '../../ui/toast.js';
 import { typeIcons } from '../../core/constants.js';
 import { projectState, getScenariosForSlice } from '../../core/projections.js';
+import { render } from '../../ui/feed.js';
 import { 
   addScenario, 
-  deleteScenario,
+  deleteScenario as deleteScenarioCmd,
   setGiven, 
   setWhen, 
   setThenEvent, 
@@ -17,346 +18,227 @@ import {
 } from './command.js';
 
 // ===========================================
+// STATE
+// ===========================================
+
+let editingSliceId = null;
+let editingSliceType = null;
+let editingScenarioId = null;
+
+// ===========================================
 // ADD SCENARIO SHEET
 // ===========================================
 
-export function showAddScenarioSheet(sliceId, sliceType, onComplete) {
-  const content = `
-    <div class="sheet-header">
-      <h3>Add ${sliceType} Scenario</h3>
-    </div>
-    <div class="sheet-body">
-      <input type="text" id="scenarioNameInput" placeholder="Scenario name..." class="name-input" autofocus>
-      <p class="hint">${sliceType === 'SC' ? 'Given/When/Then' : 'Given/Then'}</p>
-    </div>
-    <div class="sheet-actions">
-      <button class="btn secondary" onclick="window.scenarioSheetCancel()">Cancel</button>
-      <button class="btn primary" onclick="window.scenarioSheetConfirm()">Add</button>
-    </div>
-  `;
+export function openAddScenarioSheet(sliceId, sliceType) {
+  editingSliceId = sliceId;
+  editingSliceType = sliceType;
   
-  window.scenarioSheetCancel = () => {
-    hideSheet();
-    delete window.scenarioSheetCancel;
-    delete window.scenarioSheetConfirm;
-  };
+  document.getElementById('addScenarioTitle').textContent = `Add ${sliceType} Scenario`;
+  document.getElementById('scenarioNameInput').value = '';
+  document.getElementById('scenarioTypeHint').textContent = sliceType === 'SC' ? 'Given/When/Then' : 'Given/Then';
   
-  window.scenarioSheetConfirm = () => {
-    const input = document.getElementById('scenarioNameInput');
-    const name = input?.value?.trim();
-    if (!name) {
-      showToast('Enter a scenario name');
-      return;
-    }
-    
-    const scenarioId = addScenario(sliceId, name, sliceType);
-    hideSheet();
-    delete window.scenarioSheetCancel;
-    delete window.scenarioSheetConfirm;
-    
-    if (onComplete) onComplete(scenarioId);
-  };
+  showSheet('addScenarioSheet');
+  setTimeout(() => document.getElementById('scenarioNameInput').focus(), 300);
+}
+
+export function submitAddScenario() {
+  const name = document.getElementById('scenarioNameInput').value.trim();
+  if (!name || !editingSliceId) {
+    showToast('Enter a scenario name');
+    return;
+  }
   
-  showSheet(content);
+  const scenarioId = addScenario(editingSliceId, name, editingSliceType);
   
-  // Focus and handle Enter
-  setTimeout(() => {
-    const input = document.getElementById('scenarioNameInput');
-    if (input) {
-      input.focus();
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') window.scenarioSheetConfirm();
-        if (e.key === 'Escape') window.scenarioSheetCancel();
-      });
-    }
-  }, 100);
+  hideAllSheets();
+  showToast('Scenario added');
+  
+  // Open editor for the new scenario
+  const state = projectState();
+  const scenario = state.scenarios[scenarioId];
+  const slice = state.slices[editingSliceId];
+  if (scenario && slice) {
+    setTimeout(() => openEditScenarioSheet(scenario, slice), 100);
+  } else {
+    render();
+  }
 }
 
 // ===========================================
-// SCENARIO EDITOR SHEET (full editor)
+// EDIT SCENARIO SHEET
 // ===========================================
 
-export function showScenarioEditorSheet(scenario, slice, onComplete) {
+export function openEditScenarioSheet(scenario, slice) {
+  editingScenarioId = scenario.id;
+  editingSliceId = slice.id;
+  editingSliceType = scenario.type;
+  
   const state = projectState();
   const sliceElements = slice.elements.map(id => state.elements[id]).filter(Boolean);
   
-  // Get elements by type for the slice
-  const events = sliceElements.filter(e => e.type === 'event');
+  // Get elements by type
+  const events = scenario.type === 'SV' 
+    ? Object.values(state.elements).filter(e => e.type === 'event')
+    : sliceElements.filter(e => e.type === 'event');
   const commands = sliceElements.filter(e => e.type === 'command');
   const readModels = sliceElements.filter(e => e.type === 'readModel');
   
-  // For SV, we might need to get all events (not just in slice)
-  const allEvents = Object.values(state.elements).filter(e => e.type === 'event');
+  // Title
+  document.getElementById('editScenarioTitle').textContent = scenario.name;
   
-  const isSC = scenario.type === 'SC';
-  
-  // Build Given section - multi-select events
-  const givenEventsHtml = (isSC ? events : allEvents).map(e => {
+  // GIVEN - multi-select events
+  const givenList = document.getElementById('givenEventsList');
+  givenList.innerHTML = events.length ? events.map(e => {
     const isSelected = scenario.given?.some(g => g.elementId === e.id);
     return `
       <label class="checkbox-item ${isSelected ? 'selected' : ''}">
-        <input type="checkbox" data-event-id="${e.id}" ${isSelected ? 'checked' : ''}>
+        <input type="checkbox" data-event-id="${e.id}" ${isSelected ? 'checked' : ''} onchange="this.parentElement.classList.toggle('selected', this.checked)">
         <span>${typeIcons.event} ${e.name}</span>
       </label>
     `;
-  }).join('') || '<p class="empty">No events in slice</p>';
+  }).join('') : '<p class="empty">No events available</p>';
   
-  // Build When section (SC only) - select command
-  const whenHtml = isSC ? `
-    <div class="section">
-      <h4>WHEN</h4>
-      <select id="whenCommandSelect" class="select-input">
-        <option value="">Select command...</option>
-        ${commands.map(c => `
-          <option value="${c.id}" ${scenario.when?.commandId === c.id ? 'selected' : ''}>
-            ${typeIcons.command} ${c.name}
-          </option>
-        `).join('')}
-      </select>
-      ${scenario.when?.commandId ? `
-        <div class="values-preview">
-          <code>${JSON.stringify(scenario.when.values || {}, null, 2)}</code>
-        </div>
-      ` : ''}
-    </div>
-  ` : '';
+  // WHEN - command select (SC only)
+  const whenSection = document.getElementById('whenSection');
+  if (scenario.type === 'SC') {
+    whenSection.style.display = 'block';
+    const whenSelect = document.getElementById('whenCommandSelect');
+    whenSelect.innerHTML = `
+      <option value="">Select command...</option>
+      ${commands.map(c => `
+        <option value="${c.id}" ${scenario.when?.commandId === c.id ? 'selected' : ''}>
+          ${typeIcons.command} ${c.name}
+        </option>
+      `).join('')}
+    `;
+  } else {
+    whenSection.style.display = 'none';
+  }
   
-  // Build Then section
-  let thenHtml = '';
-  if (isSC) {
-    // SC: event or rejection
+  // THEN - different for SC vs SV
+  const thenOptions = document.getElementById('thenOptions');
+  if (scenario.type === 'SC') {
     const isEvent = scenario.then?.type === 'event';
     const isRejection = scenario.then?.type === 'rejection';
     
-    thenHtml = `
-      <div class="section">
-        <h4>THEN</h4>
-        <div class="then-options">
-          <label class="radio-item ${isEvent ? 'selected' : ''}">
-            <input type="radio" name="thenType" value="event" ${isEvent ? 'checked' : ''}>
-            <span>✅ Event</span>
-          </label>
-          <label class="radio-item ${isRejection ? 'selected' : ''}">
-            <input type="radio" name="thenType" value="rejection" ${isRejection ? 'checked' : ''}>
-            <span>❌ Rejection</span>
-          </label>
-        </div>
-        
-        <div id="thenEventSection" class="${isEvent ? '' : 'hidden'}">
-          <select id="thenEventSelect" class="select-input">
-            <option value="">Select event...</option>
-            ${events.map(e => `
-              <option value="${e.id}" ${scenario.then?.eventId === e.id ? 'selected' : ''}>
-                ${typeIcons.event} ${e.name}
-              </option>
-            `).join('')}
-          </select>
-        </div>
-        
-        <div id="thenRejectionSection" class="${isRejection ? '' : 'hidden'}">
-          <input type="text" id="rejectionReasonInput" placeholder="Rejection reason..." 
-                 value="${scenario.then?.reason || ''}" class="name-input">
-        </div>
+    thenOptions.innerHTML = `
+      <div class="then-type-toggle">
+        <label class="radio-item ${isEvent || !scenario.then ? 'selected' : ''}">
+          <input type="radio" name="thenType" value="event" ${isEvent || !scenario.then ? 'checked' : ''} onchange="document.getElementById('thenEventSection').style.display='block'; document.getElementById('thenRejectionSection').style.display='none'; this.parentElement.classList.add('selected'); document.querySelector('input[value=rejection]').parentElement.classList.remove('selected');">
+          <span>✅ Event</span>
+        </label>
+        <label class="radio-item ${isRejection ? 'selected' : ''}">
+          <input type="radio" name="thenType" value="rejection" ${isRejection ? 'checked' : ''} onchange="document.getElementById('thenEventSection').style.display='none'; document.getElementById('thenRejectionSection').style.display='block'; this.parentElement.classList.add('selected'); document.querySelector('input[value=event]').parentElement.classList.remove('selected');">
+          <span>❌ Rejection</span>
+        </label>
       </div>
-    `;
-  } else {
-    // SV: read model state
-    thenHtml = `
-      <div class="section">
-        <h4>THEN</h4>
-        <select id="thenReadModelSelect" class="select-input">
-          <option value="">Select read model...</option>
-          ${readModels.map(rm => `
-            <option value="${rm.id}" ${scenario.then?.readModelId === rm.id ? 'selected' : ''}>
-              ${typeIcons.readModel} ${rm.name}
+      
+      <div id="thenEventSection" style="${isRejection ? 'display:none' : ''}">
+        <select class="sheet-input" id="thenEventSelect" style="padding: 12px; margin-top: 12px;">
+          <option value="">Select event...</option>
+          ${events.map(e => `
+            <option value="${e.id}" ${scenario.then?.eventId === e.id ? 'selected' : ''}>
+              ${typeIcons.event} ${e.name}
             </option>
           `).join('')}
         </select>
-        ${scenario.then?.readModelId ? `
-          <div class="values-preview">
-            <code>${JSON.stringify(scenario.then.values || {}, null, 2)}</code>
-          </div>
-        ` : ''}
       </div>
+      
+      <div id="thenRejectionSection" style="${isRejection ? '' : 'display:none'}">
+        <input type="text" class="sheet-input" id="rejectionReasonInput" placeholder="Rejection reason..." value="${scenario.then?.reason || ''}" style="margin-top: 12px;">
+      </div>
+    `;
+  } else {
+    // SV - read model
+    thenOptions.innerHTML = `
+      <select class="sheet-input" id="thenReadModelSelect" style="padding: 12px;">
+        <option value="">Select read model...</option>
+        ${readModels.map(rm => `
+          <option value="${rm.id}" ${scenario.then?.readModelId === rm.id ? 'selected' : ''}>
+            ${typeIcons.readModel} ${rm.name}
+          </option>
+        `).join('')}
+      </select>
     `;
   }
   
-  const content = `
-    <div class="sheet-header">
-      <h3>${scenario.name}</h3>
-      <span class="badge ${scenario.type}">${scenario.type}</span>
-    </div>
-    <div class="sheet-body scenario-editor">
-      <div class="section">
-        <h4>GIVEN</h4>
-        <div class="checkbox-list">
-          ${givenEventsHtml}
-        </div>
-      </div>
-      
-      ${whenHtml}
-      ${thenHtml}
-    </div>
-    <div class="sheet-actions">
-      <button class="btn danger" onclick="window.scenarioDelete()">Delete</button>
-      <button class="btn secondary" onclick="window.scenarioCancel()">Cancel</button>
-      <button class="btn primary" onclick="window.scenarioSave()">Save</button>
-    </div>
-  `;
+  showSheet('editScenarioSheet');
+}
+
+export function saveScenario() {
+  if (!editingScenarioId) return;
   
-  window.scenarioCancel = () => {
-    hideSheet();
-    cleanup();
-  };
+  // Save Given
+  const givenCheckboxes = document.querySelectorAll('#givenEventsList input[data-event-id]:checked');
+  const givenEvents = Array.from(givenCheckboxes).map(cb => ({
+    elementId: cb.dataset.eventId,
+    values: {}
+  }));
+  setGiven(editingScenarioId, givenEvents);
   
-  window.scenarioDelete = () => {
-    if (confirm('Delete this scenario?')) {
-      deleteScenario(scenario.id, slice.id);
-      hideSheet();
-      cleanup();
-      if (onComplete) onComplete();
+  // Save When (SC only)
+  if (editingSliceType === 'SC') {
+    const commandSelect = document.getElementById('whenCommandSelect');
+    if (commandSelect?.value) {
+      setWhen(editingScenarioId, commandSelect.value, {});
     }
-  };
-  
-  window.scenarioSave = () => {
-    // Save Given
-    const givenCheckboxes = document.querySelectorAll('[data-event-id]:checked');
-    const givenEvents = Array.from(givenCheckboxes).map(cb => ({
-      elementId: cb.dataset.eventId,
-      values: {} // TODO: property values UI
-    }));
-    setGiven(scenario.id, givenEvents);
-    
-    // Save When (SC only)
-    if (isSC) {
-      const commandSelect = document.getElementById('whenCommandSelect');
-      if (commandSelect?.value) {
-        setWhen(scenario.id, commandSelect.value, {}); // TODO: property values
-      }
-    }
-    
-    // Save Then
-    if (isSC) {
-      const thenType = document.querySelector('input[name="thenType"]:checked')?.value;
-      if (thenType === 'event') {
-        const eventSelect = document.getElementById('thenEventSelect');
-        if (eventSelect?.value) {
-          setThenEvent(scenario.id, eventSelect.value, {}); // TODO: property values
-        }
-      } else if (thenType === 'rejection') {
-        const reason = document.getElementById('rejectionReasonInput')?.value?.trim();
-        if (reason) {
-          setThenRejection(scenario.id, reason);
-        }
-      }
-    } else {
-      const rmSelect = document.getElementById('thenReadModelSelect');
-      if (rmSelect?.value) {
-        setThenReadModel(scenario.id, rmSelect.value, {}); // TODO: property values
-      }
-    }
-    
-    hideSheet();
-    cleanup();
-    showToast('Scenario saved');
-    if (onComplete) onComplete();
-  };
-  
-  function cleanup() {
-    delete window.scenarioCancel;
-    delete window.scenarioDelete;
-    delete window.scenarioSave;
   }
   
-  showSheet(content);
+  // Save Then
+  if (editingSliceType === 'SC') {
+    const thenType = document.querySelector('input[name="thenType"]:checked')?.value;
+    if (thenType === 'event') {
+      const eventSelect = document.getElementById('thenEventSelect');
+      if (eventSelect?.value) {
+        setThenEvent(editingScenarioId, eventSelect.value, {});
+      }
+    } else if (thenType === 'rejection') {
+      const reason = document.getElementById('rejectionReasonInput')?.value?.trim();
+      if (reason) {
+        setThenRejection(editingScenarioId, reason);
+      }
+    }
+  } else {
+    const rmSelect = document.getElementById('thenReadModelSelect');
+    if (rmSelect?.value) {
+      setThenReadModel(editingScenarioId, rmSelect.value, {});
+    }
+  }
   
-  // Wire up Then type radio buttons
-  setTimeout(() => {
-    const radios = document.querySelectorAll('input[name="thenType"]');
-    radios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        document.getElementById('thenEventSection')?.classList.toggle('hidden', radio.value !== 'event');
-        document.getElementById('thenRejectionSection')?.classList.toggle('hidden', radio.value !== 'rejection');
-      });
-    });
-  }, 100);
+  editingScenarioId = null;
+  editingSliceId = null;
+  editingSliceType = null;
+  
+  hideAllSheets();
+  showToast('Scenario saved');
+  render();
+}
+
+export function deleteScenario() {
+  if (!editingScenarioId || !editingSliceId) return;
+  
+  if (!confirm('Delete this scenario?')) return;
+  
+  deleteScenarioCmd(editingScenarioId, editingSliceId);
+  
+  editingScenarioId = null;
+  editingSliceId = null;
+  editingSliceType = null;
+  
+  hideAllSheets();
+  showToast('Scenario deleted');
+  render();
 }
 
 // ===========================================
-// RENDER SCENARIO CARDS
+// INIT
 // ===========================================
 
-export function renderScenarioCards(sliceId, state, onEdit) {
-  const scenarios = getScenariosForSlice(sliceId, state);
-  
-  if (scenarios.length === 0) {
-    return '';
+export function initScenarios() {
+  const nameInput = document.getElementById('scenarioNameInput');
+  if (nameInput) {
+    nameInput.onkeydown = (e) => {
+      if (e.key === 'Enter') submitAddScenario();
+    };
   }
-  
-  return `
-    <div class="scenarios-section">
-      <h4>Scenarios (${scenarios.length})</h4>
-      ${scenarios.map(scn => renderScenarioCard(scn, state, onEdit)).join('')}
-    </div>
-  `;
-}
-
-function renderScenarioCard(scenario, state, onEdit) {
-  const icon = scenario.then?.type === 'rejection' ? '❌' : '✅';
-  
-  // Build preview
-  let preview = '';
-  if (scenario.given?.length > 0) {
-    const givenNames = scenario.given
-      .map(g => state.elements[g.elementId]?.name)
-      .filter(Boolean)
-      .join(', ');
-    preview += `Given: ${givenNames || '...'} `;
-  }
-  
-  if (scenario.type === 'SC' && scenario.when?.commandId) {
-    const cmdName = state.elements[scenario.when.commandId]?.name;
-    preview += `When: ${cmdName || '...'} `;
-  }
-  
-  if (scenario.then) {
-    if (scenario.then.type === 'event') {
-      const eventName = state.elements[scenario.then.eventId]?.name;
-      preview += `Then: ${eventName || '...'}`;
-    } else if (scenario.then.type === 'rejection') {
-      preview += `Then: Rejected "${scenario.then.reason}"`;
-    } else if (scenario.then.type === 'readModel') {
-      const rmName = state.elements[scenario.then.readModelId]?.name;
-      preview += `Then: ${rmName || '...'}`;
-    }
-  }
-  
-  return `
-    <div class="scenario-card" onclick="window.editScenario_${scenario.id.replace(/[^a-zA-Z0-9]/g, '_')}()">
-      <div class="scenario-header">
-        <span class="scenario-icon">${icon}</span>
-        <span class="scenario-name">${scenario.name}</span>
-        <span class="badge small ${scenario.type}">${scenario.type}</span>
-      </div>
-      <div class="scenario-preview">${preview || 'Tap to edit...'}</div>
-    </div>
-  `;
-}
-
-// Wire up edit handlers
-export function wireScenarioHandlers(sliceId, state, onEdit) {
-  const scenarios = getScenariosForSlice(sliceId, state);
-  scenarios.forEach(scn => {
-    const fnName = `editScenario_${scn.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    window[fnName] = () => onEdit(scn);
-  });
-}
-
-// Cleanup handlers
-export function cleanupScenarioHandlers(sliceId, state) {
-  const scenarios = getScenariosForSlice(sliceId, state);
-  scenarios.forEach(scn => {
-    const fnName = `editScenario_${scn.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    delete window[fnName];
-  });
 }

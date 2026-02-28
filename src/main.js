@@ -17,7 +17,7 @@ import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/pa
 import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
 import { deleteElement } from './features/deleteElement/command.js';
 import { openElementMenu, menuRename, menuProperties, menuConnect, menuDelete } from './features/elementMenu/sheet.js';
-import { showAddScenarioSheet, showScenarioEditorSheet } from './features/scenarios/sheet.js';
+import { openAddScenarioSheet, openEditScenarioSheet, submitAddScenario, saveScenario, deleteScenario, initScenarios } from './features/scenarios/sheet.js';
 import { projectState } from './core/projections.js';
 
 // ===========================================
@@ -75,29 +75,20 @@ window.EventPad = {
   menuDelete,
   
   // scenarios
-  addScenario: (sliceId, sliceType) => {
-    showAddScenarioSheet(sliceId, sliceType, (scenarioId) => {
-      // After adding, open the editor
-      const state = projectState();
-      const scenario = state.scenarios[scenarioId];
-      const slice = state.slices[sliceId];
-      if (scenario && slice) {
-        showScenarioEditorSheet(scenario, slice, renderFeed);
-      } else {
-        renderFeed();
-      }
-    });
-  },
+  addScenario: openAddScenarioSheet,
+  submitAddScenario,
   editScenario: (scenarioId) => {
     const state = projectState();
     const scenario = state.scenarios[scenarioId];
     if (scenario) {
       const slice = state.slices[scenario.sliceId];
       if (slice) {
-        showScenarioEditorSheet(scenario, slice, renderFeed);
+        openEditScenarioSheet(scenario, slice);
       }
     }
-  }
+  },
+  saveScenario,
+  deleteScenario
 };
 
 // ===========================================
@@ -113,6 +104,7 @@ function init() {
   initCreateElement();
   initNameSlice();
   initProperties();
+  initScenarios();
   
   // Wire up FAB
   document.getElementById('fab').onclick = openCreateSheet;
