@@ -237,3 +237,30 @@ export function getScenariosForSlice(sliceId, state = null) {
   state = state || projectState();
   return Object.values(state.scenarios).filter(s => s.sliceId === sliceId);
 }
+
+// SV: View Slice - SliceDetail read model
+// Returns slice with full element objects including properties
+export function getSliceDetail(sliceId, state = null) {
+  state = state || projectState();
+  const slice = state.slices[sliceId];
+  if (!slice) return null;
+  
+  // Resolve element IDs to full element objects with properties
+  const elements = slice.elements
+    .map(id => state.elements[id])
+    .filter(Boolean)
+    .map(el => ({
+      id: el.id,
+      type: el.type,
+      name: el.name,
+      properties: el.properties || []
+    }));
+  
+  return {
+    sliceId: slice.id,
+    name: slice.name,
+    type: slice.type,
+    complete: slice.complete,
+    elements
+  };
+}

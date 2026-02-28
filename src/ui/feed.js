@@ -3,7 +3,7 @@
 // ===========================================
 
 import { getEventStream, getEventCount } from '../core/eventStore.js';
-import { projectState, findSourceSlice, getScenariosForSlice } from '../core/projections.js';
+import { projectState, findSourceSlice, getScenariosForSlice, getSliceDetail } from '../core/projections.js';
 import { typeIcons, typeLabels, elementActions, connectionLabels, reverseConnectionLabels } from '../core/constants.js';
 import { showActions } from '../features/connect/actionSheet.js';
 import { promptSliceName } from '../features/nameSlice/sheet.js';
@@ -159,7 +159,9 @@ function renderElementCard(el, state) {
 
 // Render a slice card
 function renderSliceCard(slice, state) {
-  const sliceElements = slice.elements.map(id => state.elements[id]).filter(Boolean);
+  // Use SliceDetail read model to get elements with properties
+  const sliceDetail = getSliceDetail(slice.id, state);
+  const sliceElements = sliceDetail ? sliceDetail.elements : [];
   const scenarios = getScenariosForSlice(slice.id, state);
   
   // Safe slice name for onclick (escape quotes)
