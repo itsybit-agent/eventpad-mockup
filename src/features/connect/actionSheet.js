@@ -52,6 +52,9 @@ export function showActions(elementId, e) {
     if (action.svPicker) {
       onclick = `window.EventPad.showSVPicker()`;
       desc = 'Pick from State View';
+    } else if (action.multiPicker) {
+      onclick = `window.EventPad.showMultiPicker('${action.target}', '${action.relation}', '${action.sliceType || ''}')`;
+      desc = 'Select existing';
     } else if (action.picker) {
       onclick = `window.EventPad.showPicker('${action.target}', '${action.relation}', '${action.sliceType || ''}')`;
       desc = 'Pick existing';

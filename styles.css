@@ -455,6 +455,9 @@ body {
   cursor: pointer;
 }
 .sheet-option:hover { background: var(--surface-hover); }
+.sheet-option.selected { background: var(--accent); border: 2px solid var(--accent); }
+.sheet-option .check { display: none; margin-left: auto; font-size: 18px; }
+.sheet-option.selected .check { display: block; }
 .sheet-option-icon {
   width: 44px;
   height: 44px;

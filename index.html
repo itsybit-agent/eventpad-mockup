@@ -130,6 +130,17 @@
     </div>
   </div>
 
+  <!-- Multi-Select Picker Sheet -->
+  <div class="sheet-overlay" id="multiPickerSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title" id="multiPickerSheetTitle">Select Events</div>
+      <div class="sheet-options" id="multiPickerOptions"></div>
+      <div style="text-align: center; padding: 12px; color: var(--text-muted); font-size: 13px;" id="multiPickerEmpty">No elements available</div>
+      <button class="sheet-btn" id="multiPickerConfirm" onclick="window.EventPad.confirmMultiPick()" style="margin-top: 16px;" disabled>Select (0)</button>
+    </div>
+  </div>
+
   <!-- Name Slice Sheet -->
   <div class="sheet-overlay" id="sliceNameSheet">
     <div class="sheet">

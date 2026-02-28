@@ -12,6 +12,8 @@ import { getSelectedElement } from './command.js';
 import { promptSliceNaming } from '../nameSlice/sheet.js';
 
 let pendingPicker = null;
+let multiPickerSelection = new Set();
+let multiPickerConfig = null;
 
 export function showPicker(targetType, relation, sliceType) {
   hideAllSheets();
@@ -208,5 +210,111 @@ export function pickSVTrigger(eventId, readModelId, svSliceId) {
   });
   
   showToast(`Trigger set: ${evt.name}. Now pick a command.`);
+  render();
+}
+
+// ===========================================
+// MULTI-SELECT PICKER (for SV slices)
+// ===========================================
+
+export function showMultiPicker(targetType, relation, sliceType) {
+  hideAllSheets();
+  
+  const state = projectState();
+  const availableElements = Object.values(state.elements)
+    .filter(el => el.type === targetType);
+  
+  multiPickerSelection = new Set();
+  multiPickerConfig = { targetType, relation, sliceType };
+  
+  document.getElementById('multiPickerSheetTitle').textContent = `Select ${typeLabels[targetType]}s`;
+  
+  const pickerOptions = document.getElementById('multiPickerOptions');
+  const pickerEmpty = document.getElementById('multiPickerEmpty');
+  const confirmBtn = document.getElementById('multiPickerConfirm');
+  
+  if (availableElements.length === 0) {
+    pickerOptions.innerHTML = '';
+    pickerEmpty.style.display = 'block';
+    confirmBtn.disabled = true;
+  } else {
+    pickerEmpty.style.display = 'none';
+    pickerOptions.innerHTML = availableElements.map(el => `
+      <div class="sheet-option" data-element-id="${el.id}" onclick="window.EventPad.toggleMultiPickerItem('${el.id}')">
+        <div class="sheet-option-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
+        <div class="sheet-option-text">
+          <div class="sheet-option-title">${el.name}</div>
+          <div class="sheet-option-desc">${typeLabels[el.type]}</div>
+        </div>
+        <span class="check">✓</span>
+      </div>
+    `).join('');
+  }
+  
+  updateMultiPickerButton();
+  showSheet('multiPickerSheet');
+}
+
+export function toggleMultiPickerItem(elementId) {
+  if (multiPickerSelection.has(elementId)) {
+    multiPickerSelection.delete(elementId);
+  } else {
+    multiPickerSelection.add(elementId);
+  }
+  
+  // Update visual state
+  const option = document.querySelector(`[data-element-id="${elementId}"]`);
+  if (option) {
+    option.classList.toggle('selected', multiPickerSelection.has(elementId));
+  }
+  
+  updateMultiPickerButton();
+}
+
+function updateMultiPickerButton() {
+  const btn = document.getElementById('multiPickerConfirm');
+  const count = multiPickerSelection.size;
+  btn.textContent = `Create SV Slice (${count} event${count !== 1 ? 's' : ''})`;
+  btn.disabled = count === 0;
+}
+
+export function confirmMultiPick() {
+  if (multiPickerSelection.size === 0 || !multiPickerConfig) return;
+  
+  const state = projectState();
+  const selectedElement = getSelectedElement();
+  const readModelId = selectedElement.id;
+  const eventIds = Array.from(multiPickerSelection);
+  
+  hideAllSheets();
+  
+  // Create connections from each event to the read model
+  eventIds.forEach(eventId => {
+    appendEvent(EventTypes.ConsumerAdded, {
+      fromId: eventId,
+      toId: readModelId,
+      relation: 'consumer'
+    });
+  });
+  
+  // Create SV slice: events... → readModel
+  const sliceId = 'slice_' + Date.now();
+  const elements = [...eventIds, readModelId];
+  
+  appendEvent(EventTypes.SliceInferred, {
+    sliceId,
+    sliceType: 'SV',
+    elements,
+    complete: true
+  });
+  
+  // Show naming prompt
+  const eventNames = eventIds.map(id => state.elements[id]?.name).join(', ');
+  showToast(`SV slice created with ${eventIds.length} event${eventIds.length > 1 ? 's' : ''}!`);
+  
+  promptSliceNaming(sliceId, `${selectedElement.name} View`);
+  
+  multiPickerSelection = new Set();
+  multiPickerConfig = null;
   render();
 }
