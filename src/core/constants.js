@@ -24,9 +24,12 @@ export const EventTypes = {
   
   // Scenario events
   ScenarioAdded: 'ScenarioAdded',
+  ScenarioDeleted: 'ScenarioDeleted',
   GivenSet: 'GivenSet',
   WhenSet: 'WhenSet',
-  ThenSet: 'ThenSet'
+  ThenEventSet: 'ThenEventSet',
+  ThenRejectionSet: 'ThenRejectionSet',
+  ThenReadModelSet: 'ThenReadModelSet'
 };
 
 // Element type icons

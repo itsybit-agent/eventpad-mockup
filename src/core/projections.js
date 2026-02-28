@@ -32,6 +32,7 @@ export function projectState() {
     elements: {},      // id -> element
     slices: {},        // id -> slice
     connections: [],   // { from, to, relation }
+    scenarios: {},     // id -> scenario
     pendingSlice: null
   };
 
@@ -150,6 +151,67 @@ export function projectState() {
           state.slices[event.data.sliceId].complete = true;
         }
         break;
+        
+      // Scenario events
+      case EventTypes.ScenarioAdded:
+        state.scenarios[event.data.scenarioId] = {
+          id: event.data.scenarioId,
+          sliceId: event.data.sliceId,
+          name: event.data.name,
+          type: event.data.scenarioType,
+          given: [],
+          when: null,
+          then: null
+        };
+        break;
+        
+      case EventTypes.ScenarioDeleted:
+        delete state.scenarios[event.data.scenarioId];
+        break;
+        
+      case EventTypes.GivenSet:
+        if (state.scenarios[event.data.scenarioId]) {
+          state.scenarios[event.data.scenarioId].given = event.data.events;
+        }
+        break;
+        
+      case EventTypes.WhenSet:
+        if (state.scenarios[event.data.scenarioId]) {
+          state.scenarios[event.data.scenarioId].when = {
+            commandId: event.data.commandId,
+            values: event.data.values
+          };
+        }
+        break;
+        
+      case EventTypes.ThenEventSet:
+        if (state.scenarios[event.data.scenarioId]) {
+          state.scenarios[event.data.scenarioId].then = {
+            type: 'event',
+            eventId: event.data.eventId,
+            values: event.data.values
+          };
+        }
+        break;
+        
+      case EventTypes.ThenRejectionSet:
+        if (state.scenarios[event.data.scenarioId]) {
+          state.scenarios[event.data.scenarioId].then = {
+            type: 'rejection',
+            reason: event.data.reason
+          };
+        }
+        break;
+        
+      case EventTypes.ThenReadModelSet:
+        if (state.scenarios[event.data.scenarioId]) {
+          state.scenarios[event.data.scenarioId].then = {
+            type: 'readModel',
+            readModelId: event.data.readModelId,
+            values: event.data.values
+          };
+        }
+        break;
     }
   }
 
@@ -168,4 +230,10 @@ export function findSourceSlice(elementId, state = null) {
   return Object.values(state.slices).find(s => 
     s.type !== 'AU' && s.elements.includes(elementId)
   );
+}
+
+// Get scenarios for a slice
+export function getScenariosForSlice(sliceId, state = null) {
+  state = state || projectState();
+  return Object.values(state.scenarios).filter(s => s.sliceId === sliceId);
 }

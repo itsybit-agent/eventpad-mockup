@@ -531,3 +531,195 @@ body {
 }
 .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
 .empty-state-text { font-size: 15px; }
+
+/* ===========================================
+   SCENARIOS
+   =========================================== */
+
+.scenarios-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.scenarios-section h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.scenario-card {
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.scenario-card:hover {
+  border-color: var(--accent);
+}
+
+.scenario-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.scenario-icon {
+  font-size: 14px;
+}
+
+.scenario-name {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.scenario-preview {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Scenario Editor */
+.scenario-editor .section {
+  margin-bottom: 20px;
+}
+
+.scenario-editor h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-item, .radio-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+
+.checkbox-item:hover, .radio-item:hover {
+  border-color: var(--accent);
+}
+
+.checkbox-item.selected, .radio-item.selected {
+  border-color: var(--accent);
+  background: rgba(155, 89, 182, 0.1);
+}
+
+.checkbox-item input, .radio-item input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.select-input {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.select-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.then-options {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.values-preview {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.values-preview code {
+  color: var(--text-muted);
+  white-space: pre-wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px;
+}
+
+.btn.danger {
+  background: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.btn.danger:hover {
+  background: #c0392b;
+}
+
+.badge.small {
+  font-size: 9px;
+  padding: 2px 6px;
+}
+
+/* Add scenario button in slice card */
+.add-scenario-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  margin-top: 12px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.add-scenario-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

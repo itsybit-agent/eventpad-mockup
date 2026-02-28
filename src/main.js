@@ -4,7 +4,7 @@
 
 import { loadEventStream } from './core/eventStore.js';
 import { initSheets } from './ui/sheets.js';
-import { render, toggleElement, jumpToElementSlice } from './ui/feed.js';
+import { render as renderFeed, toggleElement, jumpToElementSlice } from './ui/feed.js';
 
 // Features
 import { openCreateSheet, selectType, submitCreateElement, initCreateElement } from './features/createElement/sheet.js';
@@ -17,6 +17,8 @@ import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/pa
 import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
 import { deleteElement } from './features/deleteElement/command.js';
 import { openElementMenu, menuRename, menuProperties, menuConnect, menuDelete } from './features/elementMenu/sheet.js';
+import { showAddScenarioSheet, showScenarioEditorSheet } from './features/scenarios/sheet.js';
+import { projectState } from './core/projections.js';
 
 // ===========================================
 // GLOBAL API (for onclick handlers in HTML)
@@ -70,7 +72,32 @@ window.EventPad = {
   menuRename,
   menuProperties,
   menuConnect,
-  menuDelete
+  menuDelete,
+  
+  // scenarios
+  addScenario: (sliceId, sliceType) => {
+    showAddScenarioSheet(sliceId, sliceType, (scenarioId) => {
+      // After adding, open the editor
+      const state = projectState();
+      const scenario = state.scenarios[scenarioId];
+      const slice = state.slices[sliceId];
+      if (scenario && slice) {
+        showScenarioEditorSheet(scenario, slice, renderFeed);
+      } else {
+        renderFeed();
+      }
+    });
+  },
+  editScenario: (scenarioId) => {
+    const state = projectState();
+    const scenario = state.scenarios[scenarioId];
+    if (scenario) {
+      const slice = state.slices[scenario.sliceId];
+      if (slice) {
+        showScenarioEditorSheet(scenario, slice, renderFeed);
+      }
+    }
+  }
 };
 
 // ===========================================
@@ -101,7 +128,7 @@ function init() {
   document.querySelector('.event-log-header .header-btn').onclick = copyAllEvents;
   
   // Initial render
-  render();
+  renderFeed();
   
   console.log('🟧 EventPad initialized');
 }

@@ -3,11 +3,12 @@
 // ===========================================
 
 import { getEventStream, getEventCount } from '../core/eventStore.js';
-import { projectState, findSourceSlice } from '../core/projections.js';
+import { projectState, findSourceSlice, getScenariosForSlice } from '../core/projections.js';
 import { typeIcons, typeLabels, elementActions, connectionLabels, reverseConnectionLabels } from '../core/constants.js';
 import { showActions } from '../features/connect/actionSheet.js';
 import { promptSliceName } from '../features/nameSlice/sheet.js';
 import { copyEvent } from '../features/eventLog/panel.js';
+// Scenarios are handled via window.EventPad.addScenario / editScenario
 
 // Render slice elements based on slice type
 function renderSliceElements(elements, sliceType, state) {
@@ -148,28 +149,82 @@ function renderElementCard(el, state) {
 // Render a slice card
 function renderSliceCard(slice, state) {
   const sliceElements = slice.elements.map(id => state.elements[id]).filter(Boolean);
-  const cmdEl = sliceElements.find(e => e.type === 'command');
-  const evtEl = sliceElements.find(e => e.type === 'event');
-  const rmEl = sliceElements.find(e => e.type === 'readModel');
+  const scenarios = getScenariosForSlice(slice.id, state);
+  
+  // Safe slice name for onclick (escape quotes)
+  const safeName = (slice.name || '').replace(/'/g, "\\'");
+  
+  // Build scenario cards HTML
+  const scenarioCardsHtml = renderScenarioSection(scenarios, state);
   
   return `
     <div class="slice-card" data-slice-id="${slice.id}">
-      <div class="slice-header" onclick="window.EventPad.promptSliceName('${slice.id}', '${slice.name || ''}')" style="cursor: pointer;">
+      <div class="slice-header" onclick="window.EventPad.promptSliceName('${slice.id}', '${safeName}')" style="cursor: pointer;">
         <span class="slice-name">${slice.name || '(tap to name)'}</span>
         <span class="slice-type">${slice.type}${slice.complete === false ? ' ⏳' : ''}</span>
       </div>
       <div class="slice-elements">
         ${renderSliceElements(sliceElements, slice.type, state)}
       </div>
-      <div class="scenarios">
-        <div class="scenario">
-          <div class="scenario-name success">✅ Happy path</div>
-          <div class="scenario-line">Given: []</div>
-          ${cmdEl ? `<div class="scenario-line">When: ${cmdEl.name}</div>` : ''}
-          <div class="scenario-line">Then: ${evtEl?.name || rmEl?.name || '...'}</div>
+      ${scenarioCardsHtml}
+      <button class="add-scenario-btn" onclick="window.EventPad.addScenario('${slice.id}', '${slice.type}')">
+        + Add Scenario
+      </button>
+    </div>
+  `;
+}
+
+// Render scenario section for a slice
+function renderScenarioSection(scenarios, state) {
+  if (!scenarios || scenarios.length === 0) return '';
+  
+  const cards = scenarios.map(scn => {
+    const icon = scn.then?.type === 'rejection' ? '❌' : '✅';
+    
+    // Build preview
+    let preview = '';
+    if (scn.given?.length > 0) {
+      const givenNames = scn.given
+        .map(g => state.elements[g.elementId]?.name)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(', ');
+      if (givenNames) preview += `Given: ${givenNames} `;
+    }
+    
+    if (scn.type === 'SC' && scn.when?.commandId) {
+      const cmdName = state.elements[scn.when.commandId]?.name;
+      if (cmdName) preview += `When: ${cmdName} `;
+    }
+    
+    if (scn.then) {
+      if (scn.then.type === 'event') {
+        const eventName = state.elements[scn.then.eventId]?.name;
+        if (eventName) preview += `Then: ${eventName}`;
+      } else if (scn.then.type === 'rejection') {
+        preview += `Then: Rejected`;
+      } else if (scn.then.type === 'readModel') {
+        const rmName = state.elements[scn.then.readModelId]?.name;
+        if (rmName) preview += `Then: ${rmName}`;
+      }
+    }
+    
+    return `
+      <div class="scenario-card" onclick="window.EventPad.editScenario('${scn.id}')">
+        <div class="scenario-header">
+          <span class="scenario-icon">${icon}</span>
+          <span class="scenario-name">${scn.name}</span>
+          <span class="badge small ${scn.type}">${scn.type}</span>
         </div>
-        <div class="add-scenario">+ Add Scenario</div>
+        <div class="scenario-preview">${preview || 'Tap to edit...'}</div>
       </div>
+    `;
+  }).join('');
+  
+  return `
+    <div class="scenarios-section">
+      <h4>Scenarios (${scenarios.length})</h4>
+      ${cards}
     </div>
   `;
 }
