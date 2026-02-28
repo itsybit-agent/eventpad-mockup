@@ -346,6 +346,18 @@ body {
   font-size: 12px;
   padding: 4px 0;
 }
+.slice-element-tappable {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.slice-element-tappable:hover {
+  background: var(--surface-hover);
+}
+.slice-element-tappable:active {
+  background: var(--accent);
+  opacity: 0.8;
+}
 
 /* Scenarios */
 .scenarios {

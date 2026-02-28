@@ -15,10 +15,10 @@ function renderSliceElements(elements, sliceType, state) {
     return renderAUSlice(elements, state);
   }
   
-  // Default: vertical list
+  // Default: vertical list - all elements tappable for editing
   return elements.map((el, i) => `
     ${i > 0 ? '<div class="slice-arrow">↓</div>' : ''}
-    <div class="slice-element">
+    <div class="slice-element slice-element-tappable" onclick="window.EventPad.openElementMenu('${el.id}')">
       <div class="slice-element-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
       <span>${el.name}</span>
     </div>
@@ -36,7 +36,7 @@ function renderAUSlice(elements, state) {
   // Processor at top
   if (processor) {
     html += `
-      <div class="slice-element">
+      <div class="slice-element slice-element-tappable" onclick="window.EventPad.openElementMenu('${processor.id}')">
         <div class="slice-element-icon" style="background: var(--processor); color: #fff;">⚙️</div>
         <span>${processor.name}</span>
       </div>

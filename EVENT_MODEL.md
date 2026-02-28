@@ -49,8 +49,15 @@ When: CreateElement { elementId: "c1", elementType: "command", name: "CreateOrde
 Then: ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
 ```
 
+### SC: Edit Element (from anywhere)
+⏹️ SliceCard { elementId } | ⏹️ ElementCard { elementId }
+🟦 OpenElementMenu { elementId }
+⏹️ ElementMenuSheet { rename, delete, properties, connect }
+
+**Unified entry point** — tap any element (in slice or loose) to get edit options.
+
 ### SC: Rename Element
-⏹️ ElementCard { elementId, expanded }
+⏹️ ElementMenuSheet { elementId }
 🟦 RenameElement { elementId, name }
 🟧 ElementRenamed { elementId, name }
 🟩 Feed *(element name updated)*

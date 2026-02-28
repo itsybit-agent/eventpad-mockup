@@ -16,6 +16,7 @@ import { undo, clearAll } from './features/undo/command.js';
 import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/panel.js';
 import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
 import { deleteElement } from './features/deleteElement/command.js';
+import { openElementMenu, menuRename, menuProperties, menuConnect, menuDelete } from './features/elementMenu/sheet.js';
 
 // ===========================================
 // GLOBAL API (for onclick handlers in HTML)
@@ -62,7 +63,14 @@ window.EventPad = {
   renameElement,
   
   // deleteElement
-  deleteElement
+  deleteElement,
+  
+  // elementMenu
+  openElementMenu,
+  menuRename,
+  menuProperties,
+  menuConnect,
+  menuDelete
 };
 
 // ===========================================
