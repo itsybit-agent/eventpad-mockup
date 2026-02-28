@@ -6,7 +6,7 @@ import { getEventStream } from '../../core/eventStore.js';
 import { showToast } from '../../ui/toast.js';
 
 export function toggleEventLog() {
-  document.getElementById('eventLog').classList.toggle('visible');
+  document.getElementById('eventLog').classList.toggle('open');
 }
 
 export async function copyEvent(index, element) {
