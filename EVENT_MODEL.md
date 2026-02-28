@@ -265,6 +265,58 @@ Then: Feed { elements: [], slices: [] }
 
 ---
 
+### SV: View Slice (with element details)
+🟧 SliceInferred, SliceNamed, SliceElementAdded, ElementCreated, PropertyAdded, PropertyUpdated, PropertyRemoved
+🟩 SliceDetail { sliceId, name, type, elements: ElementWithProperties[] }
+⏹️ SliceCard
+
+✅ "Slice shows elements with their properties"
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+  PropertyAdded { elementId: "c1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+  PropertyAdded { elementId: "c1", propertyId: "p2", name: "amount", propertyType: "number" }
+  ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
+  PropertyAdded { elementId: "e1", propertyId: "p3", name: "orderId", propertyType: "guid" }
+  PropertyAdded { elementId: "e1", propertyId: "p4", name: "amount", propertyType: "number" }
+  PropertyAdded { elementId: "e1", propertyId: "p5", name: "createdAt", propertyType: "date" }
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"] }
+  SliceNamed { sliceId: "s1", name: "Create Order" }
+Then:
+  SliceDetail {
+    sliceId: "s1",
+    name: "Create Order",
+    type: "SC",
+    elements: [
+      { id: "c1", type: "command", name: "CreateOrder", properties: [
+        { id: "p1", name: "orderId", type: "guid" },
+        { id: "p2", name: "amount", type: "number" }
+      ]},
+      { id: "e1", type: "event", name: "OrderCreated", properties: [
+        { id: "p3", name: "orderId", type: "guid" },
+        { id: "p4", name: "amount", type: "number" },
+        { id: "p5", name: "createdAt", type: "date" }
+      ]}
+    ]
+  }
+```
+
+✅ "Slice reflects property updates"
+```
+Given:
+  ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
+  PropertyAdded { elementId: "c1", propertyId: "p1", name: "orderId", propertyType: "string" }
+  SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1"] }
+  PropertyUpdated { elementId: "c1", propertyId: "p1", name: "orderId", propertyType: "guid" }
+Then:
+  SliceDetail {
+    sliceId: "s1",
+    elements: [{ id: "c1", properties: [{ name: "orderId", type: "guid" }] }]
+  }
+```
+
+---
+
 ## 📖 Connections
 
 ### SC: Connect Command to Event
