@@ -99,13 +99,14 @@ body {
 /* ═══════════ EVENT LOG PANEL ═══════════ */
 .event-log {
   position: fixed;
-  right: -400px;
-  top: 60px;
-  width: 380px;
-  height: calc(100vh - 60px);
+  right: -100%;
+  top: 0;
+  width: 100%;
+  max-width: 420px;
+  height: 100vh;
   background: var(--surface);
   border-left: 1px solid var(--border);
-  transition: right 0.3s;
+  transition: right 0.3s ease;
   z-index: 200;
   display: flex;
   flex-direction: column;
@@ -116,32 +117,58 @@ body {
 }
 
 .event-log-header {
-  padding: 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.event-log-header h3 {
+  font-size: 16px;
   font-weight: 600;
+  margin: 0;
+}
+
+.event-log-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.event-log-close:hover {
+  color: var(--text);
 }
 
 .event-log-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 16px;
 }
 
 .event-log-item {
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: var(--surface-elevated);
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border-radius: 10px;
+  margin-bottom: 10px;
   cursor: pointer;
   transition: all 0.15s;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
 }
 
 .event-log-item:hover { 
-  border-color: var(--accent); 
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.event-log-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .event-log-type { 
@@ -153,16 +180,26 @@ body {
 .event-log-time { 
   color: var(--text-muted); 
   font-size: 11px;
-  float: right;
 }
 
 .event-log-data {
   font-family: 'SF Mono', Monaco, monospace;
   font-size: 11px;
   color: var(--text-muted);
-  margin-top: 6px;
+  background: var(--bg);
+  padding: 10px;
+  border-radius: 6px;
   white-space: pre-wrap;
   word-break: break-all;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.event-log-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-style: italic;
 }
 
 /* ═══════════ FEED ═══════════ */
@@ -626,7 +663,7 @@ body {
   color: white;
   font-size: 24px;
   cursor: pointer;
-  z-index: 100;
+  z-index: 250;
   box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
   transition: all 0.2s;
 }
