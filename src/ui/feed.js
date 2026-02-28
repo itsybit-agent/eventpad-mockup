@@ -2,13 +2,13 @@
 // FEED RENDERER
 // ===========================================
 
-import { getEventStream, getEventCount } from '../core/eventStore.js';
+import { getEventCount } from '../core/eventStore.js';
 import { projectState, findSourceSlice, getScenariosForSlice, getSliceDetail } from '../core/projections.js';
 import { typeIcons, typeLabels, elementActions, connectionLabels, reverseConnectionLabels } from '../core/constants.js';
-import { showActions } from '../features/connect/actionSheet.js';
-import { promptSliceName } from '../features/nameSlice/sheet.js';
-import { copyEvent } from '../features/eventLog/panel.js';
-// Scenarios are handled via window.EventPad.addScenario / editScenario
+
+// Import feature views
+import { renderScenarioSection } from '../features/scenarios/view.js';
+import { renderEventLog } from '../features/eventLog/view.js';
 
 // Type label mapping
 const typeBadgeLabels = {
@@ -95,7 +95,7 @@ function renderAUSlice(elements, state) {
   return html;
 }
 
-// Render a single element card
+// Render a single element card (loose elements not in slices)
 function renderElementCard(el, state) {
   const connectionsFrom = state.connections.filter(c => c.from === el.id);
   const connectionsTo = state.connections.filter(c => c.to === el.id);
@@ -175,7 +175,7 @@ function renderSliceCard(slice, state) {
   // Safe slice name for onclick (escape quotes)
   const safeName = (slice.name || '').replace(/'/g, "\\'");
   
-  // Build scenario cards HTML
+  // Build scenario cards HTML (from scenarios feature)
   const scenarioCardsHtml = renderScenarioSection(scenarios, state);
   
   const sliceTypeLabel = slice.type === 'SC' ? 'STATE CHANGE' : slice.type === 'SV' ? 'STATE VIEW' : 'AUTOMATION';
@@ -198,82 +198,6 @@ function renderSliceCard(slice, state) {
       `}
     </div>
   `;
-}
-
-// Render scenario section for a slice (element-level only, no property values)
-function renderScenarioSection(scenarios, state) {
-  if (!scenarios || scenarios.length === 0) return '';
-  
-  const cards = scenarios.map(scn => {
-    // Build preview with colored references (Given/And/When/Then format)
-    let previewLines = [];
-    
-    if (scn.given?.length > 0) {
-      scn.given.forEach((g, i) => {
-        const el = state.elements[g.elementId];
-        if (el) {
-          const keyword = i === 0 ? 'Given' : 'And';
-          previewLines.push(`<span class="keyword">${keyword}</span> <span class="event-ref">${el.name}</span>`);
-        }
-      });
-    }
-    
-    if (scn.type === 'SC' && scn.when?.commandId) {
-      const cmd = state.elements[scn.when.commandId];
-      if (cmd) {
-        previewLines.push(`<span class="keyword">When</span> <span class="command-ref">${cmd.name}</span>`);
-      }
-    }
-    
-    if (scn.then) {
-      if (scn.then.type === 'event') {
-        const evt = state.elements[scn.then.eventId];
-        if (evt) {
-          previewLines.push(`<span class="keyword">Then</span> <span class="event-ref">${evt.name}</span>`);
-        }
-      } else if (scn.then.type === 'rejection') {
-        previewLines.push(`<span class="keyword">Then</span> <span class="rejection-ref">Rejected: "${scn.then.reason || ''}"</span>`);
-      } else if (scn.then.type === 'readModel') {
-        const rm = state.elements[scn.then.readModelId];
-        if (rm) {
-          previewLines.push(`<span class="keyword">Then</span> <span class="rm-ref">${rm.name}</span>`);
-        }
-      }
-    }
-    
-    return `
-      <div class="scenario-card" onclick="window.EventPad.editScenario('${scn.id}')">
-        <span class="close-btn" onclick="event.stopPropagation(); window.EventPad.deleteScenario('${scn.id}')">×</span>
-        <div class="scenario-header">
-          <span class="scenario-name">${scn.name}</span>
-        </div>
-        <div class="scenario-preview">${previewLines.join('<br>') || 'Tap to edit...'}</div>
-      </div>
-    `;
-  }).join('');
-  
-  const sliceId = scenarios[0]?.sliceId || '';
-  const sliceType = scenarios[0]?.type || 'SC';
-  
-  return `
-    <div class="scenarios-section">
-      <h4>SCENARIOS (${scenarios.length})</h4>
-      ${cards}
-      <button class="add-scenario-btn" onclick="event.stopPropagation(); window.EventPad.addScenario('${sliceId}', '${sliceType}')">+ Add scenario</button>
-    </div>
-  `;
-}
-
-// Render event log
-function renderEventLog() {
-  const eventStream = getEventStream();
-  return eventStream.slice().reverse().map((evt, i) => `
-    <div class="event-log-item" onclick="window.EventPad.copyEvent(${eventStream.length - 1 - i}, this)">
-      <span class="event-log-type">${evt.type}</span>
-      <span class="event-log-time">${new Date(evt.timestamp).toLocaleTimeString()}</span>
-      <div class="event-log-data">${JSON.stringify(evt.data, null, 2)}</div>
-    </div>
-  `).join('');
 }
 
 // Toggle element expansion
@@ -306,7 +230,7 @@ export function render() {
   document.getElementById('eventCount').textContent = eventCount;
   document.getElementById('undoBtn').disabled = eventCount === 0;
   
-  // Update event log
+  // Update event log (from eventLog feature)
   document.getElementById('eventLogList').innerHTML = renderEventLog();
 
   const elements = Object.values(state.elements);
