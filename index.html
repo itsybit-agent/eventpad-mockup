@@ -22,7 +22,10 @@
   <div class="event-log" id="eventLog">
     <div class="event-log-header">
       <span>Event Stream</span>
-      <button class="header-btn" style="padding: 4px 8px; font-size: 11px;">Copy All</button>
+      <div class="event-log-actions">
+        <button class="header-btn" onclick="window.EventPad.copyAllEvents()" style="padding: 4px 8px; font-size: 11px;">Copy All</button>
+        <button class="event-log-close" onclick="window.EventPad.toggleEventLog()">×</button>
+      </div>
     </div>
     <div class="event-log-list" id="eventLogList"></div>
   </div>

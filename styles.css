@@ -124,19 +124,25 @@ body {
   align-items: center;
 }
 
-.event-log-header h3 {
+.event-log-header span {
   font-size: 16px;
   font-weight: 600;
-  margin: 0;
+}
+
+.event-log-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .event-log-close {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 24px;
+  font-size: 28px;
   cursor: pointer;
-  padding: 4px;
+  padding: 0 4px;
+  line-height: 1;
 }
 
 .event-log-close:hover {
