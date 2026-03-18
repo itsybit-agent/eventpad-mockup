@@ -16,6 +16,10 @@ export function showActions(elementId, e) {
   const element = state.elements[elementId];
   setSelectedElement(element);
   
+  // Debug: log element info
+  console.log('showActions for:', elementId, 'type:', element?.type, 'name:', element?.name);
+  console.log('Available actions:', elementActions[element.type]);
+  
   let actions = elementActions[element.type] || [];
   
   // Context-aware filtering for processors
