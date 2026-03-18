@@ -1062,3 +1062,86 @@ body:has(.event-log.open) .fab {
   margin-right: 6px;
   vertical-align: middle;
 }
+
+/* ═══════════ DEBUG CONSOLE ═══════════ */
+.debug-console {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #000;
+  border-top: 1px solid #333;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.debug-bar {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #333;
+  background: #111;
+}
+
+.debug-label {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+  color: #888;
+}
+
+.debug-count {
+  background: #333;
+  color: #fff;
+  font-size: 11px;
+  font-family: 'SF Mono', Monaco, monospace;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.debug-chevron {
+  margin-left: auto;
+  color: #666;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.debug-console.expanded .debug-chevron {
+  transform: rotate(180deg);
+}
+
+.debug-logs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #ccc;
+  background: #000;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+
+.debug-console.expanded .debug-logs {
+  max-height: 50vh;
+}
+
+.debug-log-entry {
+  padding: 2px 0;
+  border-bottom: 1px solid #222;
+}
+
+.debug-log-entry:last-child {
+  border-bottom: none;
+}
+
+.debug-log-time {
+  color: #666;
+  margin-right: 8px;
+}

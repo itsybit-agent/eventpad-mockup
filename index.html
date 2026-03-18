@@ -39,6 +39,16 @@
 
   <div class="fab" id="fab">+</div>
 
+  <!-- Debug Console (mobile-friendly) -->
+  <div class="debug-console" id="debugConsole" style="display: none;">
+    <div class="debug-bar" onclick="window.EventPad.toggleDebugConsole()">
+      <span class="debug-label">🔧 declaw</span>
+      <span class="debug-count" id="debugCount">0</span>
+      <span class="debug-chevron" id="debugChevron">▲</span>
+    </div>
+    <div class="debug-logs" id="debugLogs"></div>
+  </div>
+
   <!-- Create Element Sheet -->
   <div class="sheet-overlay" id="createSheet">
     <div class="sheet">

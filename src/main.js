@@ -105,8 +105,64 @@ window.EventPad = {
   selectWhenCommand,
   selectThenType,
   selectThenEvent,
-  selectThenReadModel
+  selectThenReadModel,
+  
+  // Debug console
+  toggleDebugConsole
 };
+
+// ===========================================
+// DEBUG CONSOLE
+// ===========================================
+
+let debugLogs = [];
+let originalConsoleLog = console.log;
+
+function addDebugLog(message, ...args) {
+  const timestamp = new Date().toLocaleTimeString();
+  const logText = [message, ...args].map(arg => 
+    typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+  ).join(' ');
+  
+  debugLogs.push({ timestamp, message: logText });
+  updateDebugUI();
+  
+  // Call original console.log
+  originalConsoleLog.apply(console, [message, ...args]);
+}
+
+function updateDebugUI() {
+  const countEl = document.getElementById('debugCount');
+  const logsEl = document.getElementById('debugLogs');
+  
+  if (countEl) countEl.textContent = debugLogs.length;
+  if (logsEl) {
+    logsEl.innerHTML = debugLogs.map(log => `
+      <div class="debug-log-entry">
+        <span class="debug-log-time">${log.timestamp}</span>
+        ${log.message}
+      </div>
+    `).join('');
+    logsEl.scrollTop = logsEl.scrollHeight;
+  }
+}
+
+function toggleDebugConsole() {
+  const console = document.getElementById('debugConsole');
+  if (console) {
+    console.classList.toggle('expanded');
+  }
+}
+
+function initDebugConsole() {
+  // Show debug console if ?declaw in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('declaw')) {
+    document.getElementById('debugConsole').style.display = 'flex';
+    // Override console.log to capture logs
+    console.log = addDebugLog;
+  }
+}
 
 // ===========================================
 // INITIALIZATION
@@ -122,6 +178,7 @@ function init() {
   initNameSlice();
   initProperties();
   initScenarios();
+  initDebugConsole();
   
   // Wire up FAB
   document.getElementById('fab').onclick = openCreateSheet;
