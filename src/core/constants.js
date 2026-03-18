@@ -71,10 +71,8 @@ export const elementActions = {
     { label: 'What command does this invoke?', target: 'command', relation: 'invokes', picker: true }
   ],
   screen: [
-    { label: 'Create new command', target: 'command', relation: 'triggers' },
-    { label: 'Pick existing command', target: 'command', relation: 'triggers', picker: true },
-    { label: 'Create new read model', target: 'readModel', relation: 'displays' },
-    { label: 'Pick existing read model', target: 'readModel', relation: 'displays', picker: true }
+    { label: 'Connect to command', target: 'command', relation: 'triggers', picker: true },
+    { label: 'Connect to read model', target: 'readModel', relation: 'displays', picker: true }
   ]
 };
 

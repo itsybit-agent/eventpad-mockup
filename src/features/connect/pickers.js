@@ -8,7 +8,7 @@ import { typeIcons, typeLabels } from '../../core/constants.js';
 import { showSheet, hideAllSheets } from '../../ui/sheets.js';
 import { showToast } from '../../ui/toast.js';
 import { render } from '../../ui/feed.js';
-import { getSelectedElement } from './command.js';
+import { getSelectedElement, dispatchConnection } from './command.js';
 import { promptSliceNaming } from '../nameSlice/sheet.js';
 
 let pendingPicker = null;
@@ -27,12 +27,23 @@ export function showPicker(targetType, relation, sliceType) {
   const pickerOptions = document.getElementById('pickerOptions');
   const pickerEmpty = document.getElementById('pickerEmpty');
   
-  if (availableElements.length === 0) {
-    pickerOptions.innerHTML = '';
-    pickerEmpty.style.display = 'block';
-  } else {
-    pickerEmpty.style.display = 'none';
-    pickerOptions.innerHTML = availableElements.map(el => `
+  // Always hide empty state, always show "Create new" option
+  pickerEmpty.style.display = 'none';
+  
+  // Create new option at the top
+  let optionsHtml = `
+    <div class="sheet-option" onclick="window.EventPad.createNewFromPicker('${targetType}', '${relation}', '${sliceType}')">
+      <div class="sheet-option-icon" style="background: var(--${targetType}); color: ${targetType === 'command' || targetType === 'processor' ? '#fff' : '#000'};">+</div>
+      <div class="sheet-option-text">
+        <div class="sheet-option-title">Create new ${typeLabels[targetType]}</div>
+        <div class="sheet-option-desc">Add a new element</div>
+      </div>
+    </div>
+  `;
+  
+  // Existing elements
+  if (availableElements.length > 0) {
+    optionsHtml += availableElements.map(el => `
       <div class="sheet-option" onclick="window.EventPad.pickElement('${el.id}')">
         <div class="sheet-option-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
         <div class="sheet-option-text">
@@ -43,8 +54,15 @@ export function showPicker(targetType, relation, sliceType) {
     `).join('');
   }
   
+  pickerOptions.innerHTML = optionsHtml;
+  
   pendingPicker = { targetType, relation, sliceType };
   showSheet('pickerSheet');
+}
+
+export function createNewFromPicker(targetType, relation, sliceType) {
+  hideAllSheets();
+  dispatchConnection(relation, targetType, sliceType);
 }
 
 export function pickElement(elementId) {
