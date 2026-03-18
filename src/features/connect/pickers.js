@@ -8,7 +8,7 @@ import { typeIcons, typeLabels } from '../../core/constants.js';
 import { showSheet, hideAllSheets } from '../../ui/sheets.js';
 import { showToast } from '../../ui/toast.js';
 import { render } from '../../ui/feed.js';
-import { getSelectedElement, dispatchConnection } from './command.js';
+import { getSelectedElement, dispatchConnection, setSelectedElement } from './command.js';
 import { promptSliceNaming } from '../nameSlice/sheet.js';
 
 let pendingPicker = null;
@@ -21,6 +21,9 @@ export function showPicker(targetType, relation, sliceType) {
   const state = projectState();
   const availableElements = Object.values(state.elements)
     .filter(el => el.type === targetType);
+  
+  console.log('showPicker called:', { targetType, relation, sliceType });
+  console.log('Available elements:', availableElements);
   
   document.getElementById('pickerSheetTitle').textContent = `Pick ${typeLabels[targetType]}`;
   
@@ -63,6 +66,15 @@ export function showPicker(targetType, relation, sliceType) {
 export function createNewFromPicker(targetType, relation, sliceType) {
   hideAllSheets();
   dispatchConnection(relation, targetType, sliceType);
+}
+
+export function showDirectPicker(elementId, targetType, relation) {
+  const state = projectState();
+  const element = state.elements[elementId];
+  setSelectedElement(element);
+  
+  console.log('showDirectPicker:', { elementId, targetType, relation, element });
+  showPicker(targetType, relation, ''); // No sliceType for screens
 }
 
 export function pickElement(elementId) {

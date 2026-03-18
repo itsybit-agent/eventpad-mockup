@@ -66,9 +66,10 @@ export function renderElementCard(el, state) {
         <span class="element-delete" onclick="window.EventPad.deleteElement('${el.id}')">🗑️ Delete</span>
       </div>
       <div class="element-actions">
-        ${actions.map(action => `
-          <button class="action-btn" onclick="window.EventPad.showActions('${el.id}', event)">${action.label}</button>
-        `).join('')}
+        ${el.type === 'screen' ? 
+          actions.map(action => `<button class="action-btn" onclick="window.EventPad.showDirectPicker('${el.id}', '${action.target}', '${action.relation}')">${action.label}</button>`).join('') :
+          actions.map(action => `<button class="action-btn" onclick="window.EventPad.showActions('${el.id}', event)">${action.label}</button>`).join('')
+        }
       </div>
     </div>
   `;
