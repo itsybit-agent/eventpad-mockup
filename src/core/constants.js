@@ -71,8 +71,10 @@ export const elementActions = {
     { label: 'What command does this invoke?', target: 'command', relation: 'invokes', picker: true }
   ],
   screen: [
-    { label: 'What command does this trigger?', target: 'command', relation: 'triggers' },
-    { label: 'What does this display?', target: 'readModel', relation: 'displays' }
+    { label: 'Create new command', target: 'command', relation: 'triggers' },
+    { label: 'Pick existing command', target: 'command', relation: 'triggers', picker: true },
+    { label: 'Create new read model', target: 'readModel', relation: 'displays' },
+    { label: 'Pick existing read model', target: 'readModel', relation: 'displays', picker: true }
   ]
 };
 
@@ -96,5 +98,9 @@ export const reverseConnectionLabels = {
   consumer: 'updated by',
   trigger: 'triggered by',
   invokes: 'invoked by',
-  produces: 'produced by'
+  produces: 'produced by',
+  triggers: 'triggered by',
+  displays: 'displayed by',
+  input: 'triggers',
+  display: 'displays'
 };
