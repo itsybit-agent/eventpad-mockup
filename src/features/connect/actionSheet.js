@@ -7,7 +7,7 @@ import { typeIcons, typeLabels, elementActions } from '../../core/constants.js';
 import { showSheet, hideAllSheets } from '../../ui/sheets.js';
 import { showToast } from '../../ui/toast.js';
 import { setSelectedElement, getSelectedElement, dispatchConnection } from './command.js';
-import { showPicker, showSVPicker } from './pickers.js';
+import { showPicker, showSVPicker, showSCPicker } from './pickers.js';
 
 export function showActions(elementId, e) {
   if (e) e.stopPropagation();
@@ -56,6 +56,9 @@ export function showActions(elementId, e) {
     if (action.svPicker) {
       onclick = `window.EventPad.showSVPicker()`;
       desc = 'Pick from State View';
+    } else if (action.scPicker) {
+      onclick = `window.EventPad.showSCPicker()`;
+      desc = 'Pick or create State Change';
     } else if (action.multiPicker) {
       onclick = `window.EventPad.showMultiPicker('${action.target}', '${action.relation}', '${action.sliceType || ''}')`;
       desc = 'Select existing';

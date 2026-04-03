@@ -41,53 +41,79 @@ function renderSliceElements(elements, sliceType, state) {
   `).join('');
 }
 
-// Render AU slice with special layout
+// Render AU slice as: [SV slice] → ⚙️ Processor → [SC slice]
 function renderAUSlice(elements, state) {
   const processor = elements.find(e => e.type === 'processor');
   const command = elements.find(e => e.type === 'command');
+  const triggerEvent = elements.find(e => e.type === 'event' && 
+    state.connections.some(c => c.from === e.id && c.to === processor?.id && c.relation === 'trigger')
+  );
   const readModels = elements.filter(e => e.type === 'readModel');
-  
-  let html = '';
-  
-  // Processor at top
-  if (processor) {
+
+  // Find linked SV and SC slices by name
+  const svSlice = triggerEvent ? Object.values(state.slices).find(s =>
+    s.type === 'SV' && s.elements.includes(triggerEvent.id)
+  ) : null;
+  const scSlice = command ? Object.values(state.slices).find(s =>
+    s.type === 'SC' && s.elements.includes(command.id)
+  ) : null;
+
+  let html = '<div class="au-layout">';
+
+  // Left: SV slice pill
+  html += '<div class="au-side">';
+  if (svSlice?.name) {
     html += `
-      <div class="slice-element slice-element-tappable" onclick="window.EventPad.openElementMenu('${processor.id}')">
-        <div class="slice-element-icon" style="background: var(--processor); color: #fff;">⚙️</div>
-        <span>${processor.name}</span>
-      </div>
-    `;
+      <div class="slice-element slice-link au-linked" onclick="window.EventPad.jumpToElementSlice('${triggerEvent.id}')" title="Go to State View">
+        <span class="au-slice-label">SV</span>
+        <span>${svSlice.name}</span>
+        <span class="link-indicator">↗</span>
+      </div>`;
+  } else if (triggerEvent) {
+    html += `
+      <div class="slice-element" data-type="event">
+        <span>🟧 ${triggerEvent.name}</span>
+      </div>`;
+  } else {
+    html += `<div class="au-empty" onclick="window.EventPad.openElementMenu('${processor?.id}')">+ Set State View trigger</div>`;
   }
-  
-  // ReadModels (left) + Command (right) on same row
-  if (command || readModels.length > 0) {
-    if (processor) html += '<div class="slice-arrow">↓</div>';
-    html += '<div class="slice-row">';
-    
-    // ReadModels first (left)
+  if (readModels.length > 0) {
     readModels.forEach(rm => {
-      html += `
-        <div class="slice-element slice-link" onclick="window.EventPad.jumpToElementSlice('${rm.id}')" title="Tap to see source slice">
-          <div class="slice-element-icon" style="background: var(--readmodel); color: #000;">🟩</div>
-          <span>${rm.name}</span>
-          <span class="link-indicator">↗</span>
-        </div>
-      `;
+      html += `<div class="slice-element slice-link au-context" onclick="window.EventPad.jumpToElementSlice('${rm.id}')" title="Context read model">
+        <span>🟩 ${rm.name}</span><span class="link-indicator">↗</span></div>`;
     });
-    
-    // Command (right)
-    if (command) {
-      html += `
-        <div class="slice-element slice-link" onclick="window.EventPad.jumpToElementSlice('${command.id}')" title="Tap to see source slice">
-          <div class="slice-element-icon" style="background: var(--command); color: #fff;">🟦</div>
-          <span>${command.name}</span>
-          <span class="link-indicator">↗</span>
-        </div>
-      `;
-    }
-    html += '</div>';
   }
-  
+  html += '</div>';
+
+  // Centre: Processor
+  html += `<div class="au-center">
+    <div class="au-arrow">&rarr;</div>
+    <div class="slice-element slice-element-tappable au-processor" onclick="window.EventPad.openElementMenu('${processor?.id}')">
+      <span>⚙️ ${processor?.name || 'Processor'}</span>
+    </div>
+    <div class="au-arrow">&rarr;</div>
+  </div>`;
+
+  // Right: SC slice pill
+  html += '<div class="au-side">';
+  if (scSlice?.name) {
+    html += `
+      <div class="slice-element slice-link au-linked" onclick="window.EventPad.jumpToElementSlice('${command.id}')" title="Go to State Change">
+        <span class="au-slice-label">SC</span>
+        <span>${scSlice.name}</span>
+        <span class="link-indicator">↗</span>
+      </div>`;
+  } else if (command) {
+    html += `
+      <div class="slice-element" data-type="command">
+        <span>🟦 ${command.name}</span>
+      </div>`;
+  } else {
+    html += `<div class="au-empty" onclick="window.EventPad.openElementMenu('${processor?.id}')">+ Set State Change</div>`;
+  }
+  html += '</div>';
+
+  html += '</div>';
   return html;
 }
 

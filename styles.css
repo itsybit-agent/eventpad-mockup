@@ -1145,3 +1145,71 @@ body:has(.event-log.open) .fab {
   color: #666;
   margin-right: 8px;
 }
+
+/* AU Slice Layout */
+.au-layout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.au-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.au-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.au-arrow {
+  font-size: 18px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.au-processor {
+  text-align: center;
+  min-width: 80px;
+}
+
+.au-linked {
+  font-weight: 500;
+}
+
+.au-slice-label {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--text-muted);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-right: 4px;
+  letter-spacing: 0.5px;
+}
+
+.au-context {
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+.au-empty {
+  padding: 8px 12px;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.au-empty:active {
+  background: var(--surface-hover);
+}

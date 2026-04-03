@@ -65,9 +65,8 @@ export const elementActions = {
     { label: 'What screen displays this?', target: 'screen', relation: 'display' }
   ],
   processor: [
-    { label: 'What triggers this?', target: 'event', relation: 'trigger', svPicker: true },
-    { label: 'What additional context?', target: 'readModel', relation: 'context', picker: true },
-    { label: 'What command does this invoke?', target: 'command', relation: 'invokes', picker: true }
+    { label: 'Triggered by State View', target: 'event', relation: 'trigger', svPicker: true },
+    { label: 'Produces State Change', target: 'command', relation: 'invokes', scPicker: true }
   ],
   screen: [
     { label: 'Connect to command', target: 'command', relation: 'triggers', picker: true },

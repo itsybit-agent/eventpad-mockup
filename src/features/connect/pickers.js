@@ -225,6 +225,129 @@ export function showSVPicker() {
   showSheet('pickerSheet');
 }
 
+// SC Picker - shows existing SC slices + option to create new command
+export function showSCPicker() {
+  hideAllSheets();
+
+  const state = projectState();
+  const scSlices = Object.values(state.slices).filter(s => s.type === 'SC' && s.name);
+
+  document.getElementById('pickerSheetTitle').textContent = 'Pick State Change to produce';
+
+  const pickerOptions = document.getElementById('pickerOptions');
+  const pickerEmpty = document.getElementById('pickerEmpty');
+
+  pickerEmpty.style.display = 'none';
+
+  // Create new command (will float until event is connected → SC inferred)
+  let html = `
+    <div class="sheet-option" onclick="window.EventPad.createNewSCCommand()">
+      <div class="sheet-option-icon" style="background: var(--command); color: #fff;">+</div>
+      <div class="sheet-option-text">
+        <div class="sheet-option-title">Create new Command</div>
+        <div class="sheet-option-desc">Connect an event to complete the SC slice</div>
+      </div>
+    </div>
+  `;
+
+  if (scSlices.length === 0) {
+    html += `<div style="padding: 12px 16px; color: var(--text-muted); font-size: 13px;">No State Change slices yet — create one above</div>`;
+  } else {
+    scSlices.forEach(sc => {
+      const command = sc.elements.map(id => state.elements[id]).find(el => el?.type === 'command');
+      const event = sc.elements.map(id => state.elements[id]).find(el => el?.type === 'event');
+      if (command) {
+        html += `
+          <div class="sheet-option" onclick="window.EventPad.pickSCSlice('${sc.id}')">
+            <div class="sheet-option-icon" style="background: var(--command); color: #fff;">🟦</div>
+            <div class="sheet-option-text">
+              <div class="sheet-option-title">${sc.name}</div>
+              <div class="sheet-option-desc">${command.name}${event ? ' → ' + event.name : ''}</div>
+            </div>
+          </div>
+        `;
+      }
+    });
+  }
+
+  pickerOptions.innerHTML = html;
+  showSheet('pickerSheet');
+}
+
+export function createNewSCCommand() {
+  hideAllSheets();
+
+  const name = prompt('Name the Command:');
+  if (!name) return;
+
+  const selectedElement = getSelectedElement(); // the processor
+  const newCommandId = 'el_' + Date.now();
+
+  appendEvent(EventTypes.ElementCreated, {
+    elementId: newCommandId,
+    elementType: 'command',
+    name
+  });
+
+  appendEvent(EventTypes.ProducerSet, {
+    fromId: selectedElement.id,
+    toId: newCommandId,
+    relation: 'invokes'
+  });
+
+  // Add command to the AU slice
+  const state = projectState();
+  const auSlice = Object.values(state.slices).find(s =>
+    s.type === 'AU' && s.elements.includes(selectedElement.id)
+  );
+  if (auSlice) {
+    appendEvent(EventTypes.SliceElementAdded, {
+      sliceId: auSlice.id,
+      elementId: newCommandId
+    });
+  }
+
+  showToast(`🟦 ${name} created — connect an event to complete the SC slice`);
+  render();
+}
+
+export function pickSCSlice(scSliceId) {
+  hideAllSheets();
+
+  const state = projectState();
+  const selectedElement = getSelectedElement(); // the processor
+  const scSlice = state.slices[scSliceId];
+  if (!scSlice) return;
+
+  const command = scSlice.elements.map(id => state.elements[id]).find(el => el?.type === 'command');
+  if (!command) return;
+
+  // Connect processor → command
+  appendEvent(EventTypes.ProducerSet, {
+    fromId: selectedElement.id,
+    toId: command.id,
+    relation: 'invokes'
+  });
+
+  // Find or update the AU slice — add command to it
+  const auSlice = Object.values(state.slices).find(s =>
+    s.type === 'AU' && s.elements.includes(selectedElement.id)
+  );
+  if (auSlice) {
+    scSlice.elements.forEach(elId => {
+      if (!auSlice.elements.includes(elId)) {
+        appendEvent(EventTypes.SliceElementAdded, {
+          sliceId: auSlice.id,
+          elementId: elId
+        });
+      }
+    });
+  }
+
+  showToast(`AU slice connected to ${scSlice.name}!`);
+  render();
+}
+
 export function pickSVTrigger(eventId, readModelId, svSliceId) {
   hideAllSheets();
   
