@@ -65,15 +65,17 @@ export function saveProperty() {
     });
     showToast('Property updated');
   } else {
-    // Add new property
-    const propertyId = 'prop_' + Date.now();
-    appendEvent(EventTypes.PropertyAdded, {
-      elementId: editingElementId,
-      propertyId,
-      name,
-      propertyType
+    // Add new property — support comma-separated names
+    const names = name.split(',').map(n => n.trim()).filter(Boolean);
+    names.forEach((n, i) => {
+      appendEvent(EventTypes.PropertyAdded, {
+        elementId: editingElementId,
+        propertyId: 'prop_' + Date.now() + '_' + i,
+        name: n,
+        propertyType
+      });
     });
-    showToast('Property added');
+    showToast(names.length > 1 ? `${names.length} properties added` : 'Property added');
   }
   
   editingElementId = null;
