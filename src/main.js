@@ -15,7 +15,7 @@ import { toggleViewMode, renderTimeline, isViewMode } from './features/timeline/
 import { promptSliceName, dispatchNameSlice, dismissSlicePrompt, initNameSlice } from './features/nameSlice/sheet.js';
 import { undo, clearAll } from './features/undo/command.js';
 import { toggleEventLog, copyEvent, copyAllEvents, exportModel, importModel } from './features/eventLog/panel.js';
-import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
+import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties, confirmPropagate, skipPropagate } from './features/properties/sheet.js';
 import { deleteElement } from './features/deleteElement/command.js';
 import { openElementMenu, menuRename, menuProperties, menuConnect, menuDelete } from './features/elementMenu/sheet.js';
 import { 
@@ -85,6 +85,8 @@ window.EventPad = {
   saveProperty,
   deleteProperty,
   renameElement,
+  confirmPropagate,
+  skipPropagate,
   
   // deleteElement
   deleteElement,

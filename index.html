@@ -167,6 +167,18 @@
     </div>
   </div>
 
+  <!-- Propagate Properties Sheet -->
+  <div class="sheet-overlay" id="propagateSheet">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Propagate properties →</div>
+      <div class="sheet-subtitle" id="propagateSubtitle" style="font-size:13px; opacity:0.6; margin-bottom:12px;"></div>
+      <div id="propagateTargets"></div>
+      <button class="sheet-btn" onclick="window.EventPad.confirmPropagate()">Copy to selected</button>
+      <button class="sheet-btn" style="background:transparent; color: var(--text-muted); margin-top:4px;" onclick="window.EventPad.skipPropagate()">Skip</button>
+    </div>
+  </div>
+
   <!-- Multi-Select Picker Sheet -->
   <div class="sheet-overlay" id="multiPickerSheet">
     <div class="sheet">
