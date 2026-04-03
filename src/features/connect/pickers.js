@@ -329,8 +329,9 @@ export function pickSCSlice(scSliceId) {
     relation: 'invokes'
   });
 
-  // Find or update the AU slice — add command to it
-  const auSlice = Object.values(state.slices).find(s =>
+  // Find or create the AU slice
+  const stateAfter = projectState();
+  const auSlice = Object.values(stateAfter.slices).find(s =>
     s.type === 'AU' && s.elements.includes(selectedElement.id)
   );
   if (auSlice) {
@@ -342,9 +343,26 @@ export function pickSCSlice(scSliceId) {
         });
       }
     });
+    showToast(`AU slice connected to ${scSlice.name}!`);
+  } else {
+    // No AU slice yet — build from connections
+    const triggerConn = stateAfter.connections.find(c =>
+      c.to === selectedElement.id && c.relation === 'trigger'
+    );
+    const svSlice = triggerConn ? Object.values(stateAfter.slices).find(s =>
+      s.type === 'SV' && s.elements.includes(triggerConn.from)
+    ) : null;
+    const svElements = svSlice ? svSlice.elements : (triggerConn ? [triggerConn.from] : []);
+    const auSliceId = 'slice_au_' + Date.now();
+    appendEvent(EventTypes.SliceInferred, {
+      sliceId: auSliceId,
+      sliceType: 'AU',
+      elements: [...svElements, selectedElement.id, ...scSlice.elements],
+      complete: true
+    });
+    promptSliceNaming(auSliceId, `${selectedElement.name} Automation`);
+    showToast(`AU slice created with ${scSlice.name}!`);
   }
-
-  showToast(`AU slice connected to ${scSlice.name}!`);
   render();
 }
 
@@ -352,7 +370,7 @@ export function pickSVTrigger(eventId, readModelId, svSliceId) {
   hideAllSheets();
   
   const state = projectState();
-  const selectedElement = getSelectedElement();
+  const selectedElement = getSelectedElement(); // the processor
   const evt = state.elements[eventId];
   
   appendEvent(EventTypes.TriggerSet, {
@@ -361,8 +379,25 @@ export function pickSVTrigger(eventId, readModelId, svSliceId) {
     relation: 'trigger',
     readModelId: readModelId
   });
+
+  // Create AU slice now — processor + SV elements
+  const svSlice = state.slices[svSliceId];
+  const existingAU = Object.values(state.slices).find(s =>
+    s.type === 'AU' && s.elements.includes(selectedElement.id)
+  );
+  if (!existingAU && svSlice) {
+    const auSliceId = 'slice_' + Date.now();
+    const elements = [...svSlice.elements, selectedElement.id];
+    appendEvent(EventTypes.SliceInferred, {
+      sliceId: auSliceId,
+      sliceType: 'AU',
+      elements,
+      complete: false
+    });
+    promptSliceNaming(auSliceId, `${selectedElement.name} Automation`);
+  }
   
-  showToast(`Trigger set: ${evt.name}. Now pick a command.`);
+  showToast(`Trigger set: ${evt.name}. Now pick ‘Produces State Change’.`);
   render();
 }
 

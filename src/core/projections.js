@@ -215,6 +215,36 @@ export function projectState() {
     }
   }
 
+  // Auto-infer AU slices for processors that have connections but no AU slice yet
+  const slicedIds = new Set(Object.values(state.slices).flatMap(s => s.elements));
+  Object.values(state.elements)
+    .filter(el => el.type === 'processor' && !slicedIds.has(el.id))
+    .forEach(processor => {
+      const triggerConn = state.connections.find(c => c.to === processor.id && c.relation === 'trigger');
+      const invokesConn = state.connections.find(c => c.from === processor.id && c.relation === 'invokes');
+      if (!triggerConn && !invokesConn) return;
+
+      const svSlice = triggerConn ? Object.values(state.slices).find(s =>
+        s.type === 'SV' && s.elements.includes(triggerConn.from)
+      ) : null;
+      const scSlice = invokesConn ? Object.values(state.slices).find(s =>
+        s.type === 'SC' && s.elements.includes(invokesConn.to)
+      ) : null;
+
+      const svElements = svSlice ? svSlice.elements : (triggerConn ? [triggerConn.from] : []);
+      const scElements = scSlice ? scSlice.elements : (invokesConn ? [invokesConn.to] : []);
+      const elements = [...svElements, processor.id, ...scElements];
+
+      const syntheticSliceId = 'au_inferred_' + processor.id;
+      state.slices[syntheticSliceId] = {
+        id: syntheticSliceId,
+        type: 'AU',
+        elements,
+        name: processor.name + ' (auto)',
+        complete: !!(triggerConn && invokesConn)
+      };
+    });
+
   return state;
 }
 
