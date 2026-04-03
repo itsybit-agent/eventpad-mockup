@@ -49,30 +49,15 @@ export function renderTimeline() {
 
   const container = document.getElementById('timelineScroll');
 
-  // Group slices by type
-  const svSlices = slices.filter(s => s.type === 'SV');
-  const scSlices = slices.filter(s => s.type === 'SC');
-  const auSlices = slices.filter(s => s.type === 'AU');
-  const unnamed = slices.filter(s => !s.name);
-
-  // Render columns: SV | SC | AU | loose
+  // Render each slice as its own column, AU slices wider
   let html = '';
 
-  // Lane headers
-  const lanes = [
-    { label: '🟩 State Views', slices: svSlices },
-    { label: '🟦 State Changes', slices: scSlices },
-    { label: '⚙️ Automations', slices: auSlices },
-  ];
-
-  lanes.forEach(lane => {
-    if (lane.slices.length === 0) return;
-    html += `<div class="timeline-lane">`;
-    html += `<div class="timeline-lane-header">${lane.label}</div>`;
-    lane.slices.forEach(slice => {
+  slices.forEach(slice => {
+    if (slice.type === 'AU') {
+      html += renderTimelineAUSlice(slice, state);
+    } else {
       html += renderTimelineSlice(slice, state);
-    });
-    html += `</div>`;
+    }
   });
 
   // Loose elements
@@ -101,6 +86,51 @@ function renderTimelineSlice(slice, state) {
     <div class="tl-slice tl-slice-${slice.type.toLowerCase()}">
       <div class="tl-slice-name">${slice.name}</div>
       ${inner}
+    </div>
+  `;
+}
+
+function renderTimelineAUSlice(slice, state) {
+  const elements = slice.elements.map(id => state.elements[id]).filter(Boolean);
+  const processor = elements.find(e => e.type === 'processor');
+
+  const svSlice = processor ? Object.values(state.slices).find(s =>
+    s.type === 'SV' && elements.some(e => s.elements.includes(e.id))
+  ) : null;
+  const scSlice = processor ? Object.values(state.slices).find(s =>
+    s.type === 'SC' && elements.some(e => s.elements.includes(e.id))
+  ) : null;
+
+  const svElements = svSlice ? svSlice.elements.map(id => state.elements[id]).filter(Boolean) : [];
+  const scElements = scSlice ? scSlice.elements.map(id => state.elements[id]).filter(Boolean) : [];
+
+  const renderSide = (els) => els.map((el, i) => `
+    ${i > 0 ? '<div class="tl-arrow">↓</div>' : ''}
+    ${renderTimelineElement(el)}
+  `).join('');
+
+  return `
+    <div class="tl-slice tl-slice-au tl-slice-au-wide">
+      <div class="tl-slice-name">${slice.name}</div>
+      <!-- Gear top centre -->
+      <div class="tl-au-gear">⚙️ ${processor?.name || 'Processor'}</div>
+      <!-- Branch lines -->
+      <div class="tl-au-branches">
+        <div class="tl-au-branch-left"></div>
+        <div class="tl-au-branch-right"></div>
+      </div>
+      <!-- SV + SC side by side -->
+      <div class="tl-au-sides">
+        <div class="tl-au-side">
+          <div class="tl-au-side-label">State View</div>
+          ${svElements.length ? renderSide(svElements) : '<div class="tl-au-empty">—</div>'}
+        </div>
+        <div class="tl-au-divider"></div>
+        <div class="tl-au-side">
+          <div class="tl-au-side-label">State Change</div>
+          ${scElements.length ? renderSide(scElements) : '<div class="tl-au-empty">—</div>'}
+        </div>
+      </div>
     </div>
   `;
 }
