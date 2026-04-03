@@ -210,7 +210,6 @@ function init() {
   
   // Wire up header buttons
   document.getElementById('undoBtn').onclick = undo;
-  document.querySelector('.header-btn:last-child').onclick = clearAll;
   
   // Wire up event log toggle
   document.querySelector('.event-log-toggle').onclick = toggleEventLog;
