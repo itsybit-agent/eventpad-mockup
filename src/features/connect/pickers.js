@@ -545,3 +545,74 @@ export function confirmMultiPick() {
   multiPickerConfig = null;
   render();
 }
+
+// Add a screen to an existing SV or SC slice (called from "+Add screen" placeholder)
+export function showAddScreenToSlice(sliceId) {
+  hideAllSheets();
+
+  const state = projectState();
+  const screens = Object.values(state.elements).filter(e => e.type === 'screen');
+
+  document.getElementById('pickerSheetTitle').textContent = 'Pick Screen';
+  const pickerOptions = document.getElementById('pickerOptions');
+  const pickerEmpty = document.getElementById('pickerEmpty');
+
+  pendingPicker = { targetType: 'screen', relation: 'screen', sliceType: null, addToSliceId: sliceId };
+
+  if (screens.length === 0) {
+    pickerOptions.innerHTML = '';
+    pickerEmpty.textContent = 'No screens yet.';
+    pickerEmpty.style.display = 'block';
+  } else {
+    pickerEmpty.style.display = 'none';
+    pickerOptions.innerHTML = screens.map(s => `
+      <div class="picker-option" onclick="window.EventPad.pickScreenForSlice('${s.id}')">
+        <span class="element-type-dot screen"></span>
+        <span>${s.name}</span>
+      </div>
+    `).join('');
+  }
+
+  // Always show create option
+  pickerOptions.innerHTML += `
+    <div class="picker-option picker-create" onclick="window.EventPad.createScreenForSlice('${sliceId}')">
+      + Create new screen
+    </div>
+  `;
+
+  showSheet('pickerSheet');
+}
+
+export function pickScreenForSlice(screenId) {
+  if (!pendingPicker?.addToSliceId) return;
+  const sliceId = pendingPicker.addToSliceId;
+  hideAllSheets();
+  appendEvent(EventTypes.SliceElementAdded, {
+    sliceId,
+    elementId: screenId,
+    position: 'start'
+  });
+  pendingPicker = null;
+  render();
+  showToast('Screen added!');
+}
+
+export function createScreenForSlice(sliceId) {
+  hideAllSheets();
+  const name = prompt('Screen name:');
+  if (!name) return;
+  const screenId = 'el_' + Date.now();
+  appendEvent(EventTypes.ElementCreated, {
+    elementId: screenId,
+    elementType: 'screen',
+    name
+  });
+  appendEvent(EventTypes.SliceElementAdded, {
+    sliceId,
+    elementId: screenId,
+    position: 'start'
+  });
+  pendingPicker = null;
+  render();
+  showToast('Screen created and added!');
+}

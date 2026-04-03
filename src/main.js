@@ -10,7 +10,7 @@ import { render as renderFeed, toggleElement, jumpToElementSlice } from './ui/fe
 import { openCreateSheet, selectType, submitCreateElement, initCreateElement } from './features/createElement/sheet.js';
 import { showActions } from './features/connect/actionSheet.js';
 import { dispatchConnection } from './features/connect/command.js';
-import { showPicker, pickElement, showSVPicker, pickSVTrigger, showMultiPicker, toggleMultiPickerItem, confirmMultiPick, createNewFromPicker, createNewProducerEvent, showSCPicker, createNewSCCommand, pickSCSlice, showDirectPicker } from './features/connect/pickers.js';
+import { showPicker, pickElement, showSVPicker, pickSVTrigger, showMultiPicker, toggleMultiPickerItem, confirmMultiPick, createNewFromPicker, createNewProducerEvent, showSCPicker, createNewSCCommand, pickSCSlice, showDirectPicker, pickScreenForSlice, createScreenForSlice } from './features/connect/pickers.js';
 import { toggleViewMode, renderTimeline, isViewMode } from './features/timeline/view.js';
 import { promptSliceName, dispatchNameSlice, dismissSlicePrompt, initNameSlice } from './features/nameSlice/sheet.js';
 import { undo, clearAll } from './features/undo/command.js';
@@ -96,6 +96,21 @@ window.EventPad = {
   menuConnect,
   menuDelete,
   
+  // slices
+  addScreenToSlice: (sliceId) => {
+    import('./features/connect/pickers.js').then(({ showAddScreenToSlice }) => {
+      showAddScreenToSlice(sliceId);
+    });
+  },
+  pickScreenForSlice,
+  createScreenForSlice,
+
+  // burger
+  toggleBurger: () => {
+    const dd = document.getElementById('burgerDropdown');
+    if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  },
+
   // scenarios
   addScenario: openAddScenarioSheet,
   submitAddScenario,

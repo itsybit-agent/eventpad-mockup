@@ -77,6 +77,43 @@ body {
   cursor: not-allowed; 
 }
 
+/* Burger menu */
+.burger-menu {
+  position: relative;
+}
+.burger-btn {
+  font-size: 16px;
+  padding: 8px 12px;
+}
+.burger-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 160px;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.burger-item {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.burger-item:last-child { border-bottom: none; }
+.burger-item:hover { background: var(--surface-hover); }
+.burger-item:disabled { opacity: 0.3; cursor: not-allowed; }
+.burger-item.danger { color: #e05555; }
+
 /* ═══════════ EVENT LOG TOGGLE ═══════════ */
 .event-log-toggle {
   position: fixed;
@@ -331,6 +368,28 @@ body {
 .element-type-badge.event { background: var(--event); color: #000; }
 .element-type-badge.readModel { background: var(--readModel); color: #000; }
 .element-type-badge.processor { background: var(--processor); color: #fff; }
+
+/* Minimal color dot — replaces badge in slice element rows */
+.element-type-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+.element-type-dot.screen    { background: var(--screen); }
+.element-type-dot.command   { background: var(--command); }
+.element-type-dot.event     { background: var(--event); }
+.element-type-dot.readModel { background: var(--readModel); }
+.element-type-dot.processor { background: var(--processor); }
+
+/* Screen placeholder */
+.screen-missing {
+  border-left-color: var(--screen) !important;
+  opacity: 0.55;
+}
+.screen-missing:hover { opacity: 0.85; }
 
 .slice-element-name {
   font-size: 17px;
@@ -1195,9 +1254,24 @@ body:has(.event-log.open) .fab {
   letter-spacing: 0.5px;
 }
 
+.au2-context-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
 .au-context {
-  opacity: 0.7;
+  opacity: 0.75;
   font-size: 13px;
+  padding: 4px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 }
 
 .au-empty {

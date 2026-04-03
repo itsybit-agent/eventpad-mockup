@@ -10,12 +10,18 @@
   <div class="header">
     <h1>EventPad <span style="font-size: 10px; opacity: 0.5;">v2026.04.03.13:04</span></h1>
     <div class="header-actions">
-      <button class="header-btn" id="undoBtn" disabled>↶ Undo</button>
       <button class="header-btn" id="viewModeBtn" onclick="window.EventPad.toggleViewMode()">📺 View</button>
-      <button class="header-btn" onclick="window.EventPad.exportModel()">⬇ Export</button>
-      <button class="header-btn" onclick="document.getElementById('importFileInput').click()">⬆ Import</button>
+      <div class="burger-menu">
+        <button class="header-btn burger-btn" onclick="window.EventPad.toggleBurger()">☰</button>
+        <div class="burger-dropdown" id="burgerDropdown" style="display:none">
+          <button class="burger-item" id="undoBtn" disabled onclick="window.EventPad.undo(); window.EventPad.toggleBurger()">↶ Undo</button>
+          <button class="burger-item" onclick="window.EventPad.exportModel(); window.EventPad.toggleBurger()">⬇ Export</button>
+          <button class="burger-item" onclick="document.getElementById('importFileInput').click(); window.EventPad.toggleBurger()">⬆ Import</button>
+          <button class="burger-item" onclick="window.EventPad.toggleEventLog(); window.EventPad.toggleBurger()">📋 Events</button>
+          <button class="burger-item danger" onclick="window.EventPad.clearAll(); window.EventPad.toggleBurger()">🗑 Clear all</button>
+        </div>
+      </div>
       <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="window.EventPad.importModel(this)">
-      <button class="header-btn" onclick="window.EventPad.clearAll()">Clear</button>
     </div>
   </div>
 
@@ -227,6 +233,14 @@
 
   <div class="toast" id="toast"></div>
 
-  <script type="module" src="src/main.js?v=20260403130437"></script>
+  <script type="module" src="src/main.js?v=BUILD_VERSION"></script>
+  <script>
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('burgerDropdown');
+      if (dd && !dd.contains(e.target) && !e.target.closest('.burger-btn')) {
+        dd.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
