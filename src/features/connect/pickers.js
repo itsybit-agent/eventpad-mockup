@@ -257,19 +257,27 @@ export function showMultiPicker(targetType, relation, sliceType) {
   multiPickerSelection = new Set();
   multiPickerConfig = { targetType, relation, sliceType };
   
-  document.getElementById('multiPickerSheetTitle').textContent = `Select ${typeLabels[targetType]}s`;
+  document.getElementById('multiPickerSheetTitle').textContent = `Who produces this?`;
   
   const pickerOptions = document.getElementById('multiPickerOptions');
   const pickerEmpty = document.getElementById('multiPickerEmpty');
   const confirmBtn = document.getElementById('multiPickerConfirm');
   
-  if (availableElements.length === 0) {
-    pickerOptions.innerHTML = '';
-    pickerEmpty.style.display = 'block';
-    confirmBtn.disabled = true;
-  } else {
-    pickerEmpty.style.display = 'none';
-    pickerOptions.innerHTML = availableElements.map(el => `
+  pickerEmpty.style.display = 'none';
+
+  // "Create new event" always at top — new event floats (no slice inferred yet)
+  let optionsHtml = `
+    <div class="sheet-option" onclick="window.EventPad.createNewProducerEvent()">
+      <div class="sheet-option-icon" style="background: var(--event);">+</div>
+      <div class="sheet-option-text">
+        <div class="sheet-option-title">Create new Event</div>
+        <div class="sheet-option-desc">Add a new event — connect a command later</div>
+      </div>
+    </div>
+  `;
+
+  if (availableElements.length > 0) {
+    optionsHtml += availableElements.map(el => `
       <div class="sheet-option" data-element-id="${el.id}" onclick="window.EventPad.toggleMultiPickerItem('${el.id}')">
         <div class="sheet-option-icon" style="background: var(--${el.type}); color: ${el.type === 'command' || el.type === 'processor' ? '#fff' : '#000'};">${typeIcons[el.type]}</div>
         <div class="sheet-option-text">
@@ -280,6 +288,8 @@ export function showMultiPicker(targetType, relation, sliceType) {
       </div>
     `).join('');
   }
+
+  pickerOptions.innerHTML = optionsHtml;
   
   updateMultiPickerButton();
   showSheet('multiPickerSheet');
@@ -306,6 +316,35 @@ function updateMultiPickerButton() {
   const count = multiPickerSelection.size;
   btn.textContent = `Create SV Slice (${count} event${count !== 1 ? 's' : ''})`;
   btn.disabled = count === 0;
+}
+
+export function createNewProducerEvent() {
+  hideAllSheets();
+
+  const name = prompt('Name the Event:');
+  if (!name) return;
+
+  const state = projectState();
+  const selectedElement = getSelectedElement();
+  const readModelId = selectedElement.id;
+  const newEventId = 'el_' + Date.now();
+
+  // Create the event
+  appendEvent(EventTypes.ElementCreated, {
+    elementId: newEventId,
+    elementType: 'event',
+    name
+  });
+
+  // Connect: event → readModel (floating — no slice, no command yet)
+  appendEvent(EventTypes.ConsumerAdded, {
+    fromId: newEventId,
+    toId: readModelId,
+    relation: 'consumer'
+  });
+
+  showToast(`🟧 ${name} created — connect a command to complete the slice`);
+  render();
 }
 
 export function confirmMultiPick() {

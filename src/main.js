@@ -10,7 +10,7 @@ import { render as renderFeed, toggleElement, jumpToElementSlice } from './ui/fe
 import { openCreateSheet, selectType, submitCreateElement, initCreateElement } from './features/createElement/sheet.js';
 import { showActions } from './features/connect/actionSheet.js';
 import { dispatchConnection } from './features/connect/command.js';
-import { showPicker, pickElement, showSVPicker, pickSVTrigger, showMultiPicker, toggleMultiPickerItem, confirmMultiPick, createNewFromPicker, showDirectPicker } from './features/connect/pickers.js';
+import { showPicker, pickElement, showSVPicker, pickSVTrigger, showMultiPicker, toggleMultiPickerItem, confirmMultiPick, createNewFromPicker, createNewProducerEvent, showDirectPicker } from './features/connect/pickers.js';
 import { promptSliceName, dispatchNameSlice, dismissSlicePrompt, initNameSlice } from './features/nameSlice/sheet.js';
 import { undo, clearAll } from './features/undo/command.js';
 import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/panel.js';
@@ -52,6 +52,7 @@ window.EventPad = {
   toggleMultiPickerItem,
   confirmMultiPick,
   createNewFromPicker,
+  createNewProducerEvent,
   showDirectPicker,
   
   // nameSlice

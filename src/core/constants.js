@@ -61,8 +61,7 @@ export const elementActions = {
     { label: 'What events does this produce?', target: 'event', relation: 'produces', sliceType: 'SC' }
   ],
   readModel: [
-    { label: 'Pick source events', target: 'event', relation: 'updatedBy', sliceType: 'SV', multiPicker: true },
-    { label: 'Create new source event', target: 'event', relation: 'updatedBy', sliceType: 'SV' },
+    { label: 'Who produces this?', target: 'event', relation: 'updatedBy', sliceType: 'SV', multiPicker: true },
     { label: 'What screen displays this?', target: 'screen', relation: 'display' }
   ],
   processor: [
