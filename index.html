@@ -12,6 +12,9 @@
     <div class="header-actions">
       <button class="header-btn" id="undoBtn" disabled>↶ Undo</button>
       <button class="header-btn" id="viewModeBtn" onclick="window.EventPad.toggleViewMode()">📺 View</button>
+      <button class="header-btn" onclick="window.EventPad.exportModel()">⬇ Export</button>
+      <button class="header-btn" onclick="document.getElementById('importFileInput').click()">⬆ Import</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="window.EventPad.importModel(this)">
       <button class="header-btn" onclick="window.EventPad.clearAll()">Clear</button>
     </div>
   </div>

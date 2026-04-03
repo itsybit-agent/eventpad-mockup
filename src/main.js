@@ -14,7 +14,7 @@ import { showPicker, pickElement, showSVPicker, pickSVTrigger, showMultiPicker, 
 import { toggleViewMode, renderTimeline, isViewMode } from './features/timeline/view.js';
 import { promptSliceName, dispatchNameSlice, dismissSlicePrompt, initNameSlice } from './features/nameSlice/sheet.js';
 import { undo, clearAll } from './features/undo/command.js';
-import { toggleEventLog, copyEvent, copyAllEvents } from './features/eventLog/panel.js';
+import { toggleEventLog, copyEvent, copyAllEvents, exportModel, importModel } from './features/eventLog/panel.js';
 import { openPropertySheet, saveProperty, deleteProperty, renameElement, initProperties } from './features/properties/sheet.js';
 import { deleteElement } from './features/deleteElement/command.js';
 import { openElementMenu, menuRename, menuProperties, menuConnect, menuDelete } from './features/elementMenu/sheet.js';
@@ -73,6 +73,8 @@ window.EventPad = {
   toggleEventLog,
   copyEvent,
   copyAllEvents,
+  exportModel,
+  importModel,
   
   // feed
   toggleElement,
