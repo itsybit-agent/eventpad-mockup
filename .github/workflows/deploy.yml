@@ -18,8 +18,10 @@ jobs:
       - name: Stamp version in index.html
         run: |
           VERSION="v$(date -u '+%Y.%m.%d.%H:%M')"
+          BUILD="$(date -u '+%Y%m%d%H%M%S')"
           sed -i "s|<span style=\"font-size: 10px; opacity: 0.5;\">v[^<]*</span>|<span style=\"font-size: 10px; opacity: 0.5;\">${VERSION}</span>|" index.html
-          echo "Stamped: $VERSION"
+          sed -i "s|src/main.js?v=[^\"]*|src/main.js?v=${BUILD}|" index.html
+          echo "Stamped: $VERSION build: $BUILD"
 
       - name: Commit stamped version
         run: |
