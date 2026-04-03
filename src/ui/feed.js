@@ -9,6 +9,7 @@ import { projectState } from '../core/projections.js';
 import { renderSliceCard, jumpToElementSlice } from '../features/slices/view.js';
 import { renderElementCard, toggleElement } from '../features/elements/view.js';
 import { renderEventLog } from '../features/eventLog/view.js';
+import { isViewMode, renderTimeline } from '../features/timeline/view.js';
 
 // Re-export for window.EventPad
 export { toggleElement, jumpToElementSlice };
@@ -44,4 +45,7 @@ export function render() {
   html += looseElements.map(el => renderElementCard(el, state)).join('');
 
   feed.innerHTML = emptyState.outerHTML + html;
+
+  // Also refresh timeline if in view mode
+  if (isViewMode()) renderTimeline();
 }

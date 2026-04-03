@@ -1213,3 +1213,123 @@ body:has(.event-log.open) .fab {
 .au-empty:active {
   background: var(--surface-hover);
 }
+
+/* ========== TIMELINE VIEW ========== */
+.timeline-view {
+  position: fixed;
+  top: 56px; /* below header */
+  left: 0; right: 0; bottom: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--bg);
+  -webkit-overflow-scrolling: touch;
+}
+
+.timeline-scroll {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  min-height: 100%;
+  width: max-content;
+}
+
+.timeline-empty {
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 15px;
+  text-align: center;
+  width: 100vw;
+}
+
+.timeline-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 160px;
+  max-width: 200px;
+}
+
+.timeline-lane-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  padding: 0 4px 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.tl-slice {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-slice-sv { border-top: 3px solid var(--readmodel); }
+.tl-slice-sc { border-top: 3px solid var(--command); }
+.tl-slice-au { border-top: 3px solid var(--processor); }
+
+.tl-slice-name {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.tl-arrow {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tl-element {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.tl-element[data-type="event"]     { background: color-mix(in srgb, var(--event) 15%, transparent); }
+.tl-element[data-type="command"]   { background: color-mix(in srgb, var(--command) 15%, transparent); }
+.tl-element[data-type="readModel"] { background: color-mix(in srgb, var(--readmodel) 15%, transparent); }
+.tl-element[data-type="screen"]    { background: color-mix(in srgb, var(--screen) 15%, transparent); }
+.tl-element[data-type="processor"] { background: color-mix(in srgb, var(--processor) 15%, transparent); }
+
+.tl-icon { font-size: 11px; }
+
+.tl-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.tl-props {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.tl-prop {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.header-btn.active {
+  background: var(--primary, #333);
+  color: #fff;
+}
