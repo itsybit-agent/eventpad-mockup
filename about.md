@@ -1,8 +1,8 @@
 # EventPad — Mobile event modeling tool
 
-I kept running into the same problem: every time I wanted to sketch out an event model, I'd end up in a whiteboard tool that wasn't built for it. Sticky notes everywhere, no structure, no way to define Given-When-Then scenarios, and definitely no validation. I wanted something purpose-built — a tool where I could model an entire event-sourced system on my phone or laptop, with real structure behind the boxes and arrows.
+I wanted a quick way to describe an app to AI when I'm on my phone. Using emojis for commands, events, and read models kind of worked, but it wasn't structured and long-pressing to find the right symbol got old fast. I wanted something purpose-built — tap to add a command, an event, a read model, link them together, and have a real model I could hand off.
 
-EventPad is that tool. You create a model, drop in your commands, events, and read models, link them together, then organize everything into chapters and slices. Each slice can have GWT scenarios: "given these prior events, when this command fires, then these events happen." It also handles projection scenarios (given events, then a read model state) and rejection scenarios (given state, when command, then rejection reason). The whole thing is event-sourced itself — the model aggregate rebuilds from its own event stream.
+EventPad is that tool. You create a model, drop in your elements, link them together, then organize everything into chapters and slices. Each slice can have Given-When-Then scenarios for acceptance-level specs, projection scenarios for read model verification, and rejection scenarios for business rule failures. The whole thing is event-sourced itself — the model aggregate rebuilds from its own event stream.
 
 **Features:**
 - Create and manage event models with named elements (commands, events, read models, automations)
@@ -11,8 +11,7 @@ EventPad is that tool. You create a model, drop in your commands, events, and re
 - Organize slices into chapters for structured walkthroughs
 - Three slice types: state change, state view, and automation
 - Given-When-Then scenarios on slices for acceptance-level specifications
-- Rejection scenarios for modeling command failures and business rule violations
-- Projection scenarios for read model state verification
+- Rejection and projection scenarios for modeling failures and read model state
 - Model validation that flags structural issues
 
 **Tech:**
