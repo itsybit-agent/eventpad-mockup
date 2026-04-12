@@ -2,7 +2,7 @@
 
 I wanted a quick way to describe an app to AI when I'm on my phone. Using emojis for commands, events, and read models kind of worked, but it wasn't structured and long-pressing to find the right symbol got old fast. I wanted something purpose-built — tap to add a command, an event, a read model, link them together, and have a real model I could hand off.
 
-EventPad is that tool. You create a model, drop in your elements, link them together, then organize everything into chapters and slices. Each slice can have Given-When-Then scenarios for acceptance-level specs, projection scenarios for read model verification, and rejection scenarios for business rule failures. The whole thing is event-sourced itself — the model aggregate rebuilds from its own event stream.
+EventPad is that tool — or will be. The backend is solid: you create a model, drop in your elements, link them together, organize into chapters and slices with Given-When-Then scenarios. The whole thing is event-sourced itself. But the UI isn't quite what I want it to be yet. I'm still figuring out what event modeling should look and feel like when you're working on a phone. This is one I really want to complete someday.
 
 **Features:**
 - Create and manage event models with named elements (commands, events, read models, automations)
