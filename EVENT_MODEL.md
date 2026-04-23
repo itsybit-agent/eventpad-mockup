@@ -6,6 +6,19 @@ Element-first, slice-inferred event modeling tool.
 
 ---
 
+## ⚠️ Status: Aspirational Model
+
+This document is the **intended** model. Some slices below are not yet event-sourced in the implementation. See [`IMPLEMENTATION_MAP.md`](IMPLEMENTATION_MAP.md) for what's actually wired up. Known gaps:
+
+- **Undo / Clear All / Copy Event Log** mutate state directly — no `EventPopped` / `AllCleared` / `EventsCopied` event is appended. They live in the model below for reference but are flagged ❎ NOT EVENT-SOURCED.
+- **`Connected`** is conceptual. The code emits one of `ProducerSet`, `ConsumerAdded`, or `TriggerSet` depending on the relation. Payload shape (`{ fromId, toId, relation }`) is identical, so semantics carry over.
+- **`Disconnected`** is listed in the Event Types Summary but does not exist — connections are append-only.
+- **`ElementRenamed`** and **`PropertyUpdated`** are appended as raw string literals, not via `EventTypes` constants (TODO: promote).
+- **`SliceCompleted`** is read by the projection but never emitted; AU completion is inferred.
+- **AU slices** can arrive via two paths: an explicit `SliceInferred` from the picker flow (current behaviour for Set Command), or a synthetic auto-inference at projection time for orphan processors (`au_inferred_<id>`, no event on the stream — see `src/core/projections.js:218`).
+
+---
+
 ## 📖 Feature Slices Overview
 
 | Feature | Type | Screen → Command → Event |
@@ -17,11 +30,11 @@ Element-first, slice-inferred event modeling tool.
 | Edit Property | SC | PropertyRow → UpdateProperty → PropertyUpdated |
 | Delete Property | SC | PropertySheet → DeleteProperty → PropertyRemoved |
 | Rename Slice | SC | SliceHeader → RenameSlice → SliceNamed |
-| Connect Elements | SC | ActionSheet → Connect → Connected |
+| Connect Elements | SC | ActionSheet → Connect → ProducerSet / ConsumerAdded / TriggerSet |
 | Pick Source Events | SC | ReadModel → MultiPicker → SV Slice |
-| Undo | SC | UndoButton → Undo → EventPopped |
-| Clear All | SC | ClearButton → ClearAll → AllCleared |
-| Copy Event Log | SC | EventLog → CopyEvents → EventsCopied |
+| Undo | ❎ | UndoButton → popEvent (mutates stream, no event appended) |
+| Clear All | ❎ | ClearButton → clearEvents (mutates stream, no event appended) |
+| Copy Event Log | ❎ | EventLog → clipboard write (UI-only, no event) |
 | Add SC Scenario | SC | SliceCard → AddScenario → ScenarioAdded |
 | Set Given | SC | ScenarioEditor → SetGiven → GivenSet |
 | Set When | SC | ScenarioEditor → SetWhen → WhenSet |
@@ -182,9 +195,11 @@ Then:
 ---
 
 ### SV: View Feed
-🟧 ElementCreated, ElementDeleted, ElementRenamed, SliceInferred, SliceNamed, SliceElementAdded, AllCleared
+🟧 ElementCreated, ElementDeleted, ElementRenamed, SliceInferred, SliceNamed, SliceElementAdded, SliceElementRemoved, SliceDeleted
 🟩 Feed { elements: Element[], slices: Slice[] }
 ⏹️ Feed
+
+> Clear-all is not an event — re-render is triggered by the stream becoming empty.
 
 ✅ "Feed shows created element"
 ```
@@ -255,18 +270,14 @@ Then: Feed { slices: [{ id: "s1", elements: ["scr1", "c1", "e1"] }] }
 
 ✅ "Feed is empty after clear all"
 ```
-Given:
-  ElementCreated { elementId: "e1" }
-  ElementCreated { elementId: "c1" }
-  SliceInferred { sliceId: "s1" }
-  AllCleared { eventCount: 3 }
+Given: []   # stream empty after clearEvents()
 Then: Feed { elements: [], slices: [] }
 ```
 
 ---
 
 ### SV: Available Elements
-🟧 ElementCreated, ElementDeleted, Connected
+🟧 ElementCreated, ElementDeleted, ProducerSet, ConsumerAdded, TriggerSet
 🟩 AvailableElements { elementType: string, elements: Element[] }
 ⏹️ ElementPickerSheet
 
@@ -333,7 +344,7 @@ Given:
   ElementCreated { elementId: "c1", elementType: "command", name: "CreateOrder" }
   ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
   ElementCreated { elementId: "e2", elementType: "event", name: "OrderShipped" }
-  Connected { fromId: "c1", toId: "e1", relation: "emits" }
+  ProducerSet { fromId: "c1", toId: "e1", relation: "produces" }
 Then: AvailableElements { 
   elementType: "event", 
   elements: [
@@ -418,11 +429,21 @@ Then:
 
 ## 📖 Connections
 
+> **Implementation note:** The conceptual `Connect` command and `Connected` event below map to specific event types in code. Payload is always `{ fromId, toId, relation }`.
+>
+> | relation | event appended |
+> |----------|----------------|
+> | `producer`, `produces`, `input`, `display`, `invokes`, `context` | `ProducerSet` |
+> | `consumer`, `updatedBy` | `ConsumerAdded` |
+> | `trigger` | `TriggerSet` |
+>
+> The `InputScreenSet`, `DisplayScreenSet`, and `ProcessorOutputSet` types defined in `EventTypes` are **not used** — `ProducerSet` covers all of them.
+
 ### SC: Connect Command to Event
 ⏹️ ElementCard { commandId }
 ⏹️ ActionSheet { "What does this produce?" }
 🟦 Connect { fromId: commandId, toId: eventId, relation: "produces" }
-🟧 Connected { fromId, toId, relation }
+🟧 ProducerSet { fromId, toId, relation }
 
 ✅ "Command produces event"
 ```
@@ -430,14 +451,14 @@ Given:
   ElementCreated { elementId: "c1", elementType: "command", name: "AddTodo" }
 When: Connect { fromId: "c1", toId: "e1", relation: "produces" }
       + ElementCreated { elementId: "e1", elementType: "event", name: "TodoAdded" }
-Then: Connected { fromId: "c1", toId: "e1", relation: "produces" }
+Then: ProducerSet { fromId: "c1", toId: "e1", relation: "produces" }
 ```
 
 ### SC: Connect Event to ReadModel
 ⏹️ ElementCard { eventId }
 ⏹️ ActionSheet { "What does this update?" }
 🟦 Connect { fromId: eventId, toId: readModelId, relation: "consumer" }
-🟧 Connected { fromId, toId, relation }
+🟧 ConsumerAdded { fromId, toId, relation }
 
 ✅ "Event updates read model"
 ```
@@ -445,14 +466,14 @@ Given:
   ElementCreated { elementId: "e1", elementType: "event", name: "TodoAdded" }
 When: Connect { fromId: "e1", toId: "rm1", relation: "consumer" }
       + ElementCreated { elementId: "rm1", elementType: "readModel", name: "TodoList" }
-Then: Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+Then: ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
 ```
 
 ### SC: Connect Screen to Command
 ⏹️ ElementCard { commandId }
 ⏹️ ActionSheet { "What screen triggers this?" }
 🟦 Connect { fromId: commandId, toId: screenId, relation: "input" }
-🟧 Connected { fromId, toId, relation }
+🟧 ProducerSet { fromId, toId, relation }
 
 ✅ "Screen triggers command"
 ```
@@ -460,14 +481,14 @@ Given:
   ElementCreated { elementId: "c1", elementType: "command", name: "AddTodo" }
 When: Connect { fromId: "c1", toId: "scr1", relation: "input" }
       + ElementCreated { elementId: "scr1", elementType: "screen", name: "AddTodoForm" }
-Then: Connected { fromId: "c1", toId: "scr1", relation: "input" }
+Then: ProducerSet { fromId: "c1", toId: "scr1", relation: "input" }
 ```
 
 ### SC: Connect ReadModel to Screen
 ⏹️ ElementCard { readModelId }
 ⏹️ ActionSheet { "What screen displays this?" }
 🟦 Connect { fromId: readModelId, toId: screenId, relation: "display" }
-🟧 Connected { fromId, toId, relation }
+🟧 ProducerSet { fromId, toId, relation }
 
 ✅ "Screen displays read model"
 ```
@@ -475,7 +496,7 @@ Given:
   ElementCreated { elementId: "rm1", elementType: "readModel", name: "TodoList" }
 When: Connect { fromId: "rm1", toId: "scr1", relation: "display" }
       + ElementCreated { elementId: "scr1", elementType: "screen", name: "Dashboard" }
-Then: Connected { fromId: "rm1", toId: "scr1", relation: "display" }
+Then: ProducerSet { fromId: "rm1", toId: "scr1", relation: "display" }
 ```
 
 ---
@@ -483,7 +504,7 @@ Then: Connected { fromId: "rm1", toId: "scr1", relation: "display" }
 ## 📖 Slice Inference
 
 ### AU: Infer State Change Slice
-🟧 Connected { relation: "produces" | "producer" }
+🟧 ProducerSet { relation: "produces" | "producer" }
 🟩 Elements
 ⚙️ PatternDetector
 🟦 InferSlice { sliceId*, sliceType: "SC", elements }
@@ -495,7 +516,7 @@ Given: ElementCreated { elementId: "c1", elementType: "command", name: "Create" 
 When: Connect { fromId: "c1", toId: "e1", relation: "produces" }
       + ElementCreated { elementId: "e1", elementType: "event", name: "Created" }
 Then: 
-  Connected { fromId: "c1", toId: "e1", relation: "produces" }
+  ProducerSet { fromId: "c1", toId: "e1", relation: "produces" }
   SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"], complete: true }
 ```
 
@@ -504,12 +525,12 @@ Then:
 Given: 
   ElementCreated { elementId: "c1", elementType: "command", name: "Poo" }
   ElementCreated { elementId: "scr1", elementType: "screen", name: "but" }
-  Connected { fromId: "c1", toId: "scr1", relation: "input" }
+  ProducerSet { fromId: "c1", toId: "scr1", relation: "input" }
 When: 
   Connect { fromId: "c1", toId: "e1", relation: "produces" }
   + ElementCreated { elementId: "e1", elementType: "event", name: "poooooood" }
 Then:
-  Connected { fromId: "c1", toId: "e1", relation: "produces" }
+  ProducerSet { fromId: "c1", toId: "e1", relation: "produces" }
   SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["scr1", "c1", "e1"], complete: true }
 ```
 **Rule:** When inferring slice, include pre-connected screens (input) at start, readModels at end.
@@ -520,12 +541,12 @@ Given: ElementCreated { elementId: "e1", elementType: "event", name: "Created" }
 When: Connect { fromId: "c1", toId: "e1", relation: "producer" }
       + ElementCreated { elementId: "c1", elementType: "command", name: "Create" }
 Then:
-  Connected { fromId: "c1", toId: "e1", relation: "producer" }
+  ProducerSet { fromId: "c1", toId: "e1", relation: "producer" }
   SliceInferred { sliceId: "s1", sliceType: "SC", elements: ["c1", "e1"], complete: true }
 ```
 
 ### AU: Infer State View Slice
-🟧 Connected { relation: "consumer" | "updatedBy" }
+🟧 ConsumerAdded { relation: "consumer" | "updatedBy" }
 🟩 Elements
 ⚙️ PatternDetector
 🟦 InferSlice { sliceId*, sliceType: "SV", elements }
@@ -537,7 +558,7 @@ Given: ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreat
 When: Connect { fromId: "e1", toId: "rm1", relation: "consumer" }
       + ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
 Then:
-  Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
   SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"], complete: true }
 ```
 
@@ -547,7 +568,7 @@ Given: ElementCreated { elementId: "rm1", elementType: "readModel", name: "Order
 When: Connect { fromId: "e1", toId: "rm1", relation: "updatedBy" }
       + ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
 Then:
-  Connected { fromId: "e1", toId: "rm1", relation: "updatedBy" }
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "updatedBy" }
   SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"], complete: true }
 ```
 
@@ -556,13 +577,13 @@ Then:
 Given:
   ElementCreated { elementId: "e1", elementType: "event", name: "OrderCreated" }
   ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
-  Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
   SliceInferred { sliceId: "s1", sliceType: "SV", elements: ["e1", "rm1"] }
   SliceNamed { sliceId: "s1", name: "Order List View" }
 When: Connect { fromId: "e2", toId: "rm1", relation: "consumer" }
       + ElementCreated { elementId: "e2", elementType: "event", name: "OrderCanceled" }
 Then:
-  Connected { fromId: "e2", toId: "rm1", relation: "consumer" }
+  ConsumerAdded { fromId: "e2", toId: "rm1", relation: "consumer" }
   SliceElementAdded { sliceId: "s1", elementId: "e2", position: "start" }
 ```
 **Result:** SV slice elements = [⏹️ Dashboard, 🟩 OrderList, 🟧 OrderCreated, 🟧 OrderCanceled]
@@ -674,73 +695,46 @@ Then:
 
 ---
 
-## 📖 Undo
+## 📖 Undo (❎ NOT EVENT-SOURCED)
 
-### SC: Undo Last Event
+### Undo Last Event
 ⏹️ Header { UndoButton }
-🟦 Undo { }
-🟧 EventPopped { poppedEvent }
+↳ `popEvent()` — removes the last entry from the event stream
 
-✅ "Undo last action"
-```
-Given: 
-  ElementCreated { elementId: "e1", name: "OrderCreated" }
-  ElementCreated { elementId: "e2", name: "OrderShipped" }
-When: Undo { }
-Then: EventPopped { poppedEvent: { type: "ElementCreated", data: { elementId: "e2" } } }
-```
+**Implementation:** `src/features/undo/command.js:9`. Pops directly from the in-memory stream, persists, re-projects. No `Undo` command and no `EventPopped` event are recorded — that would be paradoxical because the popped event would itself need to come off next time.
+
+**Future:** could be modelled as a meta-stream of stream operations, but currently isn't.
 
 ---
 
-## 📖 Clear All
+## 📖 Clear All (❎ NOT EVENT-SOURCED)
 
-### SC: Clear All Events
+### Clear All Events
 ⏹️ Header { ClearButton }
-🟦 ClearAll { }
-🟧 AllCleared { eventCount }
+↳ `clearEvents()` — empties the event stream
 
-✅ "Clear all events"
-```
-Given: 
-  ElementCreated { elementId: "e1" }
-  ElementCreated { elementId: "c1" }
-  SliceInferred { sliceId: "s1" }
-When: ClearAll { }
-Then: AllCleared { eventCount: 3 }
-```
+**Implementation:** `src/features/undo/command.js:17`. Wipes `localStorage` and the in-memory array. No `ClearAll` command or `AllCleared` event.
 
 ---
 
-## 📖 Copy Event Log
+## 📖 Copy Event Log (❎ NOT EVENT-SOURCED)
 
-### SC: Copy Events
+### Copy Events
 ⏹️ EventLogPanel { tap event or "Copy All" }
-🟦 CopyEvents { eventIds? }
-🟧 EventsCopied { count }
-⏹️ Toast { "Copied!" }
+↳ Clipboard write only; toast confirmation
 
-✅ "Copy single event"
-```
-Given: ElementCreated { id: "evt_1", elementId: "e1" }
-When: CopyEvents { eventIds: ["evt_1"] }
-Then: EventsCopied { count: 1 }
-```
+**Implementation:** `src/features/eventLog/panel.js`. Pure UI action — copies the JSON of the event(s) to the clipboard. No `CopyEvents` command or `EventsCopied` event.
 
-✅ "Copy all events"
-```
-Given: 
-  ElementCreated { id: "evt_1" }
-  ElementCreated { id: "evt_2" }
-When: CopyEvents { }
-Then: EventsCopied { count: 2 }
-```
+### Export / Import Model (❎ NOT EVENT-SOURCED)
+- **Export:** serialises the entire event stream to a downloaded JSON file.
+- **Import:** loads a JSON file and **replaces** the in-memory stream wholesale, then persists and re-projects. No event is appended for either action.
 
 ---
 
 ## 📖 View Event Log
 
 ### SV: Event Log
-🟧 ElementCreated, Connected, SliceInferred, SliceNamed, ...
+🟧 *(every event in the stream)*
 🟩 EventLog { events: Event[], count }
 ⏹️ EventLogPanel { scrollable list }
 
@@ -749,7 +743,7 @@ Then: EventsCopied { count: 2 }
 Given:
   ElementCreated { elementId: "e1" }
   ElementCreated { elementId: "c1" }
-  Connected { fromId: "c1", toId: "e1" }
+  ProducerSet { fromId: "c1", toId: "e1", relation: "produces" }
 Then:
   EventLog { events: [...], count: 3 }
 ```
@@ -775,7 +769,7 @@ When:
   Connect { fromId: "c1", toId: "scr1", relation: "input" }
   + ElementCreated { elementId: "scr1", elementType: "screen", name: "OrderForm" }
 Then:
-  Connected { fromId: "c1", toId: "scr1", relation: "input" }
+  ProducerSet { fromId: "c1", toId: "scr1", relation: "input" }
   SliceElementAdded { sliceId: "s1", elementId: "scr1", position: "start" }
 ```
 
@@ -796,7 +790,7 @@ When:
   Connect { fromId: "e1", toId: "rm1", relation: "consumer" }
   + ElementCreated { elementId: "rm1", elementType: "readModel", name: "OrderList" }
 Then:
-  Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
   SliceElementAdded { sliceId: "s1", elementId: "rm1", position: "end" }
 ```
 
@@ -811,7 +805,7 @@ When:
   Connect { fromId: "rm1", toId: "scr2", relation: "display" }
   + ElementCreated { elementId: "scr2", elementType: "screen", name: "Confirmation" }
 Then:
-  Connected { fromId: "rm1", toId: "scr2", relation: "display" }
+  ProducerSet { fromId: "rm1", toId: "scr2", relation: "display" }
   SliceElementAdded { sliceId: "s1", elementId: "scr2", position: "end" }
 ```
 
@@ -1325,27 +1319,48 @@ Then:
 
 ## Event Types Summary
 
-| Event | Data |
-|-------|------|
-| ElementCreated | elementId, elementType, name |
-| ElementDeleted | elementId |
-| ElementRenamed | elementId, name |
-| PropertyAdded | elementId, propertyId, name, propertyType |
-| PropertyUpdated | elementId, propertyId, name, propertyType |
-| PropertyRemoved | elementId, propertyId |
-| Connected | fromId, toId, relation |
-| Disconnected | fromId, toId |
-| SliceInferred | sliceId, sliceType, elements, complete |
-| SliceNamed | sliceId, name |
-| SliceElementAdded | sliceId, elementId, position |
-| SliceElementRemoved | sliceId, elementId |
-| ScenarioAdded | sliceId, scenarioId, name, scenarioType |
-| GivenSet | scenarioId, events: [{elementId, values}] |
-| WhenSet | scenarioId, commandId, values |
-| ThenEventSet | scenarioId, eventId, values |
-| ThenRejectionSet | scenarioId, reason |
-| ThenReadModelSet | scenarioId, readModelId, values |
-| ScenarioDeleted | sliceId, scenarioId |
+Reflects what's actually appended in the codebase (`src/core/constants.js` + the two raw-string outliers).
+
+| Event | Data | Source |
+|-------|------|--------|
+| ElementCreated | elementId, elementType, name | constant |
+| ElementDeleted | elementId | constant |
+| `'ElementRenamed'` | elementId, name | **raw string** (not in `EventTypes`) |
+| PropertyAdded | elementId, propertyId, name, propertyType | constant |
+| `'PropertyUpdated'` | elementId, propertyId, name, propertyType | **raw string** (not in `EventTypes`) |
+| PropertyRemoved | elementId, propertyId | constant |
+| ProducerSet | fromId, toId, relation | constant — covers `producer`, `produces`, `input`, `display`, `invokes`, `context` |
+| ConsumerAdded | fromId, toId, relation | constant — covers `consumer`, `updatedBy` |
+| TriggerSet | fromId, toId, relation | constant — processor SV trigger |
+| SliceInferred | sliceId, sliceType, elements, complete | constant |
+| SliceNamed | sliceId, name | constant |
+| SliceElementAdded | sliceId, elementId, position | constant |
+| SliceElementRemoved | sliceId, elementId | constant |
+| SliceDeleted | sliceId | constant |
+| ScenarioAdded | sliceId, scenarioId, name, scenarioType | constant |
+| GivenSet | scenarioId, events: [{elementId, values}] | constant |
+| WhenSet | scenarioId, commandId, values | constant |
+| ThenEventSet | scenarioId, eventId, values | constant |
+| ThenRejectionSet | scenarioId, reason | constant |
+| ThenReadModelSet | scenarioId, readModelId, values | constant |
+| ScenarioDeleted | sliceId, scenarioId | constant |
+
+### Defined but unused
+
+These are in `EventTypes` but never appended:
+
+| Event | Status |
+|-------|--------|
+| InputScreenSet | replaced by `ProducerSet` with `relation: 'input'` |
+| DisplayScreenSet | replaced by `ProducerSet` with `relation: 'display'` |
+| ProcessorOutputSet | replaced by `ProducerSet` with `relation: 'invokes'` |
+| SliceCompleted | projection handles it but no dispatcher emits it |
+
+### Removed from earlier versions of this model
+
+- `Connected` — never existed; conceptual only (see Connections section)
+- `Disconnected` — never existed; connections are append-only
+- `EventPopped`, `AllCleared`, `EventsCopied` — Undo/Clear/Copy bypass the event stream
 
 ---
 
@@ -1382,8 +1397,8 @@ Given:
 ### SC Slice 1: Add Todo
 ```
 Given:
-  Connected { fromId: "scr1", toId: "c1", relation: "triggers" }
-  Connected { fromId: "c1", toId: "e1", relation: "produces" }
+  ProducerSet { fromId: "scr1", toId: "c1", relation: "input" }
+  ProducerSet { fromId: "c1", toId: "e1", relation: "produces" }
 Then:
   SliceInferred { sliceId: "sc1", sliceType: "SC", elements: ["scr1", "c1", "e1"] }
   SliceNamed { sliceId: "sc1", name: "Add Todo" }
@@ -1401,7 +1416,7 @@ Result:
 ### SC Slice 2: Complete Todo
 ```
 Given:
-  Connected { fromId: "c2", toId: "e2", relation: "produces" }
+  ProducerSet { fromId: "c2", toId: "e2", relation: "produces" }
 Then:
   SliceInferred { sliceId: "sc2", sliceType: "SC", elements: ["c2", "e2"] }
   SliceNamed { sliceId: "sc2", name: "Complete Todo" }
@@ -1418,9 +1433,9 @@ Result:
 ### SV Slice: Todo List View
 ```
 Given:
-  Connected { fromId: "e1", toId: "rm1", relation: "consumer" }
-  Connected { fromId: "e2", toId: "rm1", relation: "consumer" }
-  Connected { fromId: "rm1", toId: "scr2", relation: "display" }
+  ConsumerAdded { fromId: "e1", toId: "rm1", relation: "consumer" }
+  ConsumerAdded { fromId: "e2", toId: "rm1", relation: "consumer" }
+  ProducerSet { fromId: "rm1", toId: "scr2", relation: "display" }
 Then:
   SliceInferred { sliceId: "sv1", sliceType: "SV", elements: ["scr2", "rm1", "e1", "e2"] }
   SliceNamed { sliceId: "sv1", name: "Todo List View" }
@@ -1446,11 +1461,11 @@ Then:
   # rm1 (TodoList) auto-included from same SV
 
 Given:
-  # Processor picks command
-  AutomationCommandSet { sliceId: "au1", commandId: "c3" }
+  # Processor picks command (via picker UI)
+  ProducerSet { fromId: "p1", toId: "c3", relation: "invokes" }
 Then:
-  SliceElementAdded { sliceId: "au1", elementId: "c3" }
-  SliceCompleted { sliceId: "au1" }
+  # Picker flow appends a fresh SliceInferred for the now-complete AU slice
+  SliceInferred { sliceId: "au1", sliceType: "AU", elements: ["e1", "rm1", "p1", "c3"], complete: true }
   SliceNamed { sliceId: "au1", name: "Reminder Automation" }
 
 Result:

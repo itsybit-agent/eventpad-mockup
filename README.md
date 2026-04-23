@@ -145,5 +145,7 @@ Larger ideas from [`about.md`](about.md): rebuild the backend on .NET 10 / ASP.N
 ## Further reading
 
 - [`EVENT_MODEL.md`](EVENT_MODEL.md) — the complete event model for EventPad itself (the tool models its own behavior)
-- [`IMPLEMENTATION_MAP.md`](IMPLEMENTATION_MAP.md) — line-level map from model to code
+- [`IMPLEMENTATION_MAP.md`](IMPLEMENTATION_MAP.md) — map from model elements to source files
+- [`LEARNINGS.md`](LEARNINGS.md) — what worked, what broke, and concrete improvements
+- [`TODO.md`](TODO.md) — outstanding work
 - [`about.md`](about.md) — origin story and intent
