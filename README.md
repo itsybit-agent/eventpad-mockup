@@ -118,9 +118,16 @@ http://localhost:8000/?declaw
 
 ## Deployment
 
-There is no application deploy script. The site is fully static — copy the directory to any static host (GitHub Pages, Netlify, Vercel, S3, Cloudflare Pages).
+The site is deployed via **GitHub Pages**, served directly from the `main` branch root (configured in repo Settings → Pages — no Pages workflow needed because the site is already static).
 
-The one workflow in `.github/workflows/deploy.yml` is **not** a deploy: it stamps a UTC timestamp into the version label in `index.html` and into the `main.js` cache-bust query string on every push to `main`, then commits the change back.
+The one workflow in `.github/workflows/deploy.yml` runs on every push to `main` and stamps a UTC timestamp into:
+
+- the version label in `index.html`
+- the `main.js` cache-bust query string (so browsers always pull the latest module)
+
+It then commits the stamped file back to `main`, which triggers Pages to republish.
+
+Since the site is fully static, you can also host it anywhere else (Netlify, Vercel, S3, Cloudflare Pages) by copying the directory.
 
 ## Persistence and data
 
